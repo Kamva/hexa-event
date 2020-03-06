@@ -6,7 +6,8 @@ go get github.com/Kamva/kitty-event
 ```
 
 #### Todo:
+- [ ] Add support of protocol buffer for sending events.  
 - [ ] Write Tests.
-- [ ] Implement a mock driver.
+- [ ] Implement mock
 - [ ] Add badges to readme.
 - [ ] CI.
