@@ -3,6 +3,8 @@ github.com/BurntSushi/toml v0.3.0/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Kamva/gutil v0.0.0-20200228120620-7f3374a9b2db h1:J2G9bxAJsTk8ZL9VBYrQs9tDXmbLvh70t86SQudULI0=
 github.com/Kamva/gutil v0.0.0-20200228120620-7f3374a9b2db/go.mod h1:KvaAPqUTtjac/70L9pCuNEJX0FSH7+WrTo6sariE4FM=
+github.com/Kamva/gutil v0.0.0-20200306092721-d1590e417824 h1:Op8cMC7Oe6SJMjKg2gd3L+IM4LUh1UDYuKtN/ft/iKs=
+github.com/Kamva/gutil v0.0.0-20200306092721-d1590e417824/go.mod h1:KvaAPqUTtjac/70L9pCuNEJX0FSH7+WrTo6sariE4FM=
 github.com/Kamva/kitty v0.0.0-20200305151725-c8f683178f92 h1:bLVMw82yPsYbtot8d0BgD5m1rEW5RBJBfMfNMd5Z/oY=
 github.com/Kamva/kitty v0.0.0-20200305151725-c8f683178f92/go.mod h1:2vRVlMF+0Q8MGdWf6NEYEP4dOHcd4liSvmMMpy72sy8=
 github.com/Kamva/tracer v0.0.0-20200227202933-3d5974771f25 h1:8+MV2TSg/Qn1lLryNLDX1A9hIRMBQhcHGdurD142TIU=

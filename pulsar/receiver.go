@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Kamva/gutil"
 	"github.com/Kamva/kitty"
 	"github.com/Kamva/kitty-event"
 	"github.com/Kamva/tracer"
@@ -23,12 +24,12 @@ type (
 
 	// receiver is implementation of the event receiver. 
 	receiver struct {
-		client        pulsar.Client
-		cg            ConsumerOptionsGenerator
-		subscriptions []pulsar.Consumer
-		wg            *sync.WaitGroup
-		done          chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
-		names         []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
+		client            pulsar.Client
+		cg                ConsumerOptionsGenerator
+		subscriptions     []pulsar.Consumer
+		wg                *sync.WaitGroup
+		done              chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
+		subscriptionNames []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
 
 		// Need these to create user context.
 		uf kitty.UserFinder
@@ -52,6 +53,10 @@ func (h *handlerContext) Nack() {
 }
 
 func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error {
+	if err := r.addSubscription(name); err != nil {
+		return tracer.Trace(err)
+	}
+
 	if channel == "" {
 		return tracer.Trace(errors.New("channel name can not be empty"))
 	}
@@ -74,6 +79,10 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, h kevent.EventHandler) er
 }
 
 func (r *receiver) SubscribeMulti(channels kevent.ChannelNames, h kevent.EventHandler) error {
+	if err := r.addSubscription(channels.SubscriptionName); err != nil {
+		return tracer.Trace(err)
+	}
+
 	if err := channels.Validate(); err != nil {
 		return tracer.Trace(err)
 	}
@@ -89,6 +98,14 @@ func (r *receiver) SubscribeMulti(channels kevent.ChannelNames, h kevent.EventHa
 func (r *receiver) Close() error {
 	close(r.done)
 	r.wg.Wait()
+	return nil
+}
+func (r *receiver) addSubscription(name string) error {
+	if gutil.Contains(r.subscriptionNames, name) {
+		return tracer.Trace(errors.New("name is not unique"))
+	}
+
+	r.subscriptionNames = append(r.subscriptionNames, name)
 	return nil
 }
 
