@@ -1,4 +1,4 @@
-module github.com/Kavma/kitty-event
+module github.com/Kamva/kitty-event
 
 go 1.13
 
