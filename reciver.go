@@ -3,6 +3,7 @@ package kevent
 import (
 	"context"
 	"github.com/Kamva/kitty"
+	"github.com/Kamva/tracer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -23,6 +24,10 @@ type (
 		Subscribe(subscriptionName string, channel string, h EventHandler) error
 		// SubscribeMulti subscribe to multiple channel by either providing list of channels or pattern.
 		SubscribeMulti(ChannelNames, EventHandler) error
+
+		// Start starts receiving the messages.
+		Start() error
+
 		// Close close the connection
 		Close() error
 	}
@@ -40,10 +45,11 @@ type (
 )
 
 func (cn ChannelNames) Validate() error {
-	return validation.ValidateStruct(&cn,
+	err := validation.ValidateStruct(&cn,
 		validation.Field(&cn.Names, validation.Required.When(cn.Pattern == ""), validation.Each(validation.Required)),
 		validation.Field(&cn.Pattern, validation.Required.When(len(cn.Names) == 0)),
 	)
+	return tracer.Trace(err)
 }
 
 // NewChannelNames return new instance of the ChannelNames strut.

@@ -95,6 +95,11 @@ func (r *receiver) SubscribeMulti(channels kevent.ChannelNames, h kevent.EventHa
 	return r.subscribe(consumer, h)
 }
 
+func (r *receiver) Start() error {
+	r.wg.Wait()
+	return nil
+}
+
 func (r *receiver) Close() error {
 	close(r.done)
 	r.wg.Wait()
