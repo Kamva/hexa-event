@@ -212,6 +212,14 @@ func findSubscriptionItem(items []SubscriptionItem, subscriptionName string) *Su
 	return nil
 }
 
+// ConsumerOptions returns new instance of pulsar consumer options.
+func ConsumerOptions(name string, subscriptionType pulsar.SubscriptionType) pulsar.ConsumerOptions {
+	return pulsar.ConsumerOptions{
+		SubscriptionName: name,
+		Type:             subscriptionType,
+	}
+}
+
 // NewReceiver returns new instance of pulsar implementation of the kitty event receiver.
 func NewReceiver(client pulsar.Client, uf kitty.UserFinder, cg ConsumerOptionsGenerator) (kevent.Receiver, error) {
 	if client == nil {
