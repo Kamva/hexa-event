@@ -6,8 +6,7 @@ go get github.com/Kamva/kitty-event
 ```
 
 #### Todo:
-- [ ] Collection presenter
-- [ ] Write Tests
-- [ ] Add more services like log,...
+- [ ] Write Tests.
+- [ ] Implement a mock driver.
 - [ ] Add badges to readme.
-- [ ] CI 
+- [ ] CI.
