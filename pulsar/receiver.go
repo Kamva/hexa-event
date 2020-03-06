@@ -226,6 +226,15 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) kevent.HandlerContext {
 	}
 }
 
+// DefaultSubscriptionItem returns new instance of the subscriptionItem with default values.
+func DefaultSubscriptionItem(channel string, h kevent.EventHandler) SubscriptionItem {
+	return SubscriptionItem{
+		ChannelNames:    kevent.NewChannelNames(channel, channel),
+		EventHandler:    h,
+		ConsumerOptions: ConsumerOptions(channel, pulsar.Exclusive),
+	}
+}
+
 // ConsumerOptionsGeneratorByList get list of channels with their
 // consumer options and return a consumer generator.
 func NewConsumerOptionsGenerator(items []SubscriptionItem) ConsumerOptionsGenerator {
