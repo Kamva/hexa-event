@@ -117,7 +117,7 @@ func (r *receiver) addSubscription(name string) error {
 // consumer returns new instance of the pulsar consumer with provided channel
 func (r *receiver) consumer(topics kevent.ChannelNames) (pulsar.Consumer, error) {
 	options, err := r.cg(r.client, topics.SubscriptionName)
-	r.setTopicOnOptions(options, topics)
+	options = r.setTopicOnOptions(options, topics)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -127,6 +127,7 @@ func (r *receiver) consumer(topics kevent.ChannelNames) (pulsar.Consumer, error)
 // setTopicOnOptions set the topic name on the options.
 func (r *receiver) setTopicOnOptions(options pulsar.ConsumerOptions, topics kevent.ChannelNames) pulsar.ConsumerOptions {
 	options.Name = topics.SubscriptionName
+
 	if len(topics.Names) == 1 {
 		options.Topic = topics.Names[0]
 		return options
