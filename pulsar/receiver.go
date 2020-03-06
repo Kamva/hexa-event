@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Kamva/kitty"
+	"github.com/Kamva/kitty-event"
 	"github.com/Kamva/tracer"
-	kevent "github.com/Kavma/kitty-event"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"reflect"
 	"sync"
 )
 
@@ -20,7 +19,7 @@ type (
 	}
 
 	// ConsumerOptionsGenerator generate new consumers.
-	ConsumerOptionsGenerator func(pulsar.Client, kevent.ChannelNames) (pulsar.ConsumerOptions, error)
+	ConsumerOptionsGenerator func(client pulsar.Client, subscriptionName string) (pulsar.ConsumerOptions, error)
 
 	// receiver is implementation of the event receiver. 
 	receiver struct {
@@ -29,6 +28,7 @@ type (
 		subscriptions []pulsar.Consumer
 		wg            *sync.WaitGroup
 		done          chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
+		names         []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
 
 		// Need these to create user context.
 		uf kitty.UserFinder
@@ -51,12 +51,12 @@ func (h *handlerContext) Nack() {
 	h.msg.Consumer.Nack(h.msg.Message)
 }
 
-func (r *receiver) Subscribe(channel string, h kevent.EventHandler) error {
+func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error {
 	if channel == "" {
 		return tracer.Trace(errors.New("channel name can not be empty"))
 	}
 
-	consumer, err := r.consumer(kevent.NewChannelNames([]string{channel}, ""))
+	consumer, err := r.consumer(kevent.NewChannelNames(name, []string{channel}, ""))
 	if err != nil {
 		return tracer.Trace(err)
 	}
@@ -94,11 +94,29 @@ func (r *receiver) Close() error {
 
 // consumer returns new instance of the pulsar consumer with provided channel
 func (r *receiver) consumer(topics kevent.ChannelNames) (pulsar.Consumer, error) {
-	options, err := r.cg(r.client, topics)
+	options, err := r.cg(r.client, topics.SubscriptionName)
+	r.setTopicOnOptions(options, topics)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
 	return r.client.Subscribe(options)
+}
+
+// setTopicOnOptions set the topic name on the options.
+func (r *receiver) setTopicOnOptions(options pulsar.ConsumerOptions, topics kevent.ChannelNames) pulsar.ConsumerOptions {
+	options.Name = topics.SubscriptionName
+	if len(topics.Names) == 1 {
+		options.Topic = topics.Names[0]
+		return options
+	}
+
+	if len(topics.Names) > 1 {
+		options.Topics = topics.Names
+		return options
+	}
+
+	options.TopicsPattern = topics.Pattern
+	return options
 }
 
 func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx kitty.Context, m kevent.Message, err error) {
@@ -149,8 +167,8 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) kevent.HandlerContext {
 // ConsumerOptionsGeneratorByList get list of channels with their
 // consumer options and return a consumer generator.
 func ConsumerOptionsGeneratorByList(items []SubscriptionItem) ConsumerOptionsGenerator {
-	return func(client pulsar.Client, channels kevent.ChannelNames) (options pulsar.ConsumerOptions, err error) {
-		item := findSubscriptionItem(items, channels)
+	return func(client pulsar.Client, name string) (options pulsar.ConsumerOptions, err error) {
+		item := findSubscriptionItem(items, name)
 		if item == nil {
 			err = tracer.Trace(errors.New("can not find topic options to generate new consumer"))
 			return
@@ -161,9 +179,9 @@ func ConsumerOptionsGeneratorByList(items []SubscriptionItem) ConsumerOptionsGen
 }
 
 // findSubscriptionItem find subscription item in provided list.
-func findSubscriptionItem(items []SubscriptionItem, channels kevent.ChannelNames) *SubscriptionItem {
+func findSubscriptionItem(items []SubscriptionItem, subscriptionName string) *SubscriptionItem {
 	for _, item := range items {
-		if reflect.DeepEqual(item.ChannelNames, channels) {
+		if item.ChannelNames.SubscriptionName == subscriptionName {
 			return &item
 		}
 	}

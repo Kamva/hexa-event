@@ -10,8 +10,9 @@ type (
 	// Topic is descriptions about the topic(especially topic's Name)
 	// that provide to the consumerGenerator to generate consumer.
 	ChannelNames struct {
-		Names   []string // If Names is empty, so you should check pattern.
-		Pattern string
+		SubscriptionName string
+		Names            []string // If Names is empty, so you should check pattern.
+		Pattern          string
 	}
 
 	// EventHandler handle events.
@@ -19,7 +20,7 @@ type (
 
 	Receiver interface {
 		// Subscribe subscribe to the provided channel
-		Subscribe(channel string, h EventHandler) error
+		Subscribe(subscriptionName string, channel string, h EventHandler) error
 		// SubscribeMulti subscribe to multiple channel by either providing list of channels or pattern.
 		SubscribeMulti(ChannelNames, EventHandler) error
 		// Close close the connection
@@ -46,10 +47,11 @@ func (cn ChannelNames) Validate() error {
 }
 
 // NewChannelNames return new instance of the ChannelNames strut.
-func NewChannelNames(names []string, pattern string) ChannelNames {
+func NewChannelNames(subscriptionName string, names []string, pattern string) ChannelNames {
 	c := ChannelNames{
-		Names:   names,
-		Pattern: pattern,
+		SubscriptionName: subscriptionName,
+		Names:            names,
+		Pattern:          pattern,
 	}
 
 	return c
