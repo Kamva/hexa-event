@@ -53,10 +53,19 @@ func (cn ChannelNames) Validate() error {
 }
 
 // NewChannelNames return new instance of the ChannelNames strut.
-func NewChannelNames(subscriptionName string, names []string, pattern string) ChannelNames {
+func NewChannelNames(subscriptionName string, names ...string) ChannelNames {
 	c := ChannelNames{
 		SubscriptionName: subscriptionName,
 		Names:            names,
+	}
+
+	return c
+}
+
+// NewChannelPattern return new instance of ChanelNames that contains pattern.
+func NewChannelPattern(subscriptionName string, pattern string) ChannelNames {
+	c := ChannelNames{
+		SubscriptionName: subscriptionName,
 		Pattern:          pattern,
 	}
 

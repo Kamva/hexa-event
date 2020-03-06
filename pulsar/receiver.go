@@ -61,7 +61,7 @@ func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error 
 		return tracer.Trace(errors.New("channel name can not be empty"))
 	}
 
-	consumer, err := r.consumer(kevent.NewChannelNames(name, []string{channel}, ""))
+	consumer, err := r.consumer(kevent.NewChannelNames(name, channel))
 	if err != nil {
 		return tracer.Trace(err)
 	}
