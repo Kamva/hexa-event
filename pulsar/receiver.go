@@ -15,10 +15,10 @@ import (
 
 type (
 	SubscriptionItem struct {
+		TopicNamingFormat string // We use this format to generate topics name.
 		kevent.ChannelNames
 		kevent.EventHandler
 		pulsar.ConsumerOptions
-		topicNamingFormat string // We use this format to generate topics name.
 	}
 
 	// ConsumerOptionsGenerator generate new consumers.
@@ -66,7 +66,7 @@ func (cg *consumerOptionsGenerator) Generator(client pulsar.Client, topics keven
 		return pulsar.ConsumerOptions{}, err
 	}
 
-	return cg.setTopicNameOnOptions(item.topicNamingFormat,item.ConsumerOptions,topics),nil
+	return cg.setTopicNameOnOptions(item.TopicNamingFormat, item.ConsumerOptions, topics), nil
 }
 
 // setTopicNameOnOptions set the topic name on the options.
