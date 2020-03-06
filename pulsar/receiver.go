@@ -170,12 +170,14 @@ func receive(consumer pulsar.Consumer, wg *sync.WaitGroup, done chan bool, f fun
 	defer wg.Done()
 
 	ch := consumer.Chan()
-	select {
-	case msg := <-ch:
-		f(msg)
-	case _ = <-done:
-		consumer.Close()
-		return
+	for {
+		select {
+		case msg := <-ch:
+			f(msg)
+		case _ = <-done:
+			consumer.Close()
+			return
+		}
 	}
 }
 
