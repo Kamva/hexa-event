@@ -1,15 +1,15 @@
 //---------------------------------------
-// Pulsar implementation of kitty events.
+// Pulsar implementation of hexa events.
 // Pulsar driver is thread safe.
 //---------------------------------------
-package kpulsar
+package hexapulsar
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Kamva/kitty-event"
+	"github.com/Kamva/hexa-event"
 	"github.com/Kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"sync"
@@ -20,7 +20,7 @@ type (
 	// ProducerGenerator generate new producer
 	ProducerGenerator func(c pulsar.Client, topic string) (pulsar.Producer, error)
 
-	// pulsar implementation of the kitty Emitter.
+	// pulsar implementation of the hexa Emitter.
 	emitter struct {
 		client    pulsar.Client
 		pg        ProducerGenerator
@@ -37,7 +37,7 @@ func (e *emitter) ctx(c context.Context) context.Context {
 	return c
 }
 
-func (e *emitter) Emit(c context.Context, event *kevent.Event) (string, error) {
+func (e *emitter) Emit(c context.Context, event *hevent.Event) (string, error) {
 	c = e.ctx(c)
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
@@ -61,7 +61,7 @@ func (e *emitter) Emit(c context.Context, event *kevent.Event) (string, error) {
 	return string(id.Serialize()), tracer.Trace(err)
 }
 
-func (e *emitter) msg(event *kevent.Event) (*pulsar.ProducerMessage, error) {
+func (e *emitter) msg(event *hevent.Event) (*pulsar.ProducerMessage, error) {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		err = tracer.Trace(err)
@@ -121,7 +121,7 @@ func CustomProducerGenerator(topicFormat string, options pulsar.ProducerOptions)
 }
 
 // NewEmitter returns new instance of pulsar emitter
-func NewEmitter(client pulsar.Client, pg ProducerGenerator) (kevent.Emitter, error) {
+func NewEmitter(client pulsar.Client, pg ProducerGenerator) (hevent.Emitter, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
@@ -134,4 +134,4 @@ func NewEmitter(client pulsar.Client, pg ProducerGenerator) (kevent.Emitter, err
 	}, nil
 }
 
-var _ kevent.Emitter = &emitter{}
+var _ hevent.Emitter = &emitter{}

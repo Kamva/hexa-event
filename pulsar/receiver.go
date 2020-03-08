@@ -1,4 +1,4 @@
-package kpulsar
+package hexapulsar
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Kamva/gutil"
-	"github.com/Kamva/kitty"
-	"github.com/Kamva/kitty-event"
+	"github.com/Kamva/hexa"
+	hevent "github.com/Kamva/hexa-event"
 	"github.com/Kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"sync"
@@ -16,13 +16,13 @@ import (
 type (
 	SubscriptionItem struct {
 		TopicNamingFormat string // We use this format to generate topics name.
-		kevent.ChannelNames
-		kevent.EventHandler
+		hevent.ChannelNames
+		hevent.EventHandler
 		pulsar.ConsumerOptions
 	}
 
 	// ConsumerOptionsGenerator generate new consumers.
-	ConsumerOptionsGenerator func(client pulsar.Client, topic kevent.ChannelNames) (pulsar.ConsumerOptions, error)
+	ConsumerOptionsGenerator func(client pulsar.Client, topic hevent.ChannelNames) (pulsar.ConsumerOptions, error)
 
 	// consumerOptionsGenerator implements ConsumerOptionsGenerator function as its method.
 	consumerOptionsGenerator struct {
@@ -39,9 +39,9 @@ type (
 		subscriptionNames []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
 
 		// Need these to create user context.
-		uf kitty.UserFinder
-		l  kitty.Logger
-		t  kitty.Translator
+		uf hexa.UserFinder
+		l  hexa.Logger
+		t  hexa.Translator
 	}
 
 	// handlerContext implements the HandlerContext interface.
@@ -59,7 +59,7 @@ func (h *handlerContext) Nack() {
 	h.msg.Consumer.Nack(h.msg.Message)
 }
 
-func (cg *consumerOptionsGenerator) Generator(client pulsar.Client, topics kevent.ChannelNames) (pulsar.ConsumerOptions, error) {
+func (cg *consumerOptionsGenerator) Generator(client pulsar.Client, topics hevent.ChannelNames) (pulsar.ConsumerOptions, error) {
 	item := cg.findSubscriptionItem(topics.SubscriptionName)
 	if item == nil {
 		err := tracer.Trace(fmt.Errorf("pulsar option for the topic %s not found", topics.SubscriptionName))
@@ -70,7 +70,7 @@ func (cg *consumerOptionsGenerator) Generator(client pulsar.Client, topics keven
 }
 
 // setTopicNameOnOptions set the topic name on the options.
-func (cg *consumerOptionsGenerator) setTopicNameOnOptions(format string, options pulsar.ConsumerOptions, topics kevent.ChannelNames) pulsar.ConsumerOptions {
+func (cg *consumerOptionsGenerator) setTopicNameOnOptions(format string, options pulsar.ConsumerOptions, topics hevent.ChannelNames) pulsar.ConsumerOptions {
 	options.Name = topics.SubscriptionName
 
 	if len(topics.Names) == 1 {
@@ -108,7 +108,7 @@ func (cg *consumerOptionsGenerator) findSubscriptionItem(subscriptionName string
 	return nil
 }
 
-func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error {
+func (r *receiver) Subscribe(name, channel string, h hevent.EventHandler) error {
 	if err := r.captureSubscriptionName(name); err != nil {
 		return tracer.Trace(err)
 	}
@@ -117,7 +117,7 @@ func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error 
 		return tracer.Trace(errors.New("channel name can not be empty"))
 	}
 
-	consumer, err := r.consumer(kevent.NewChannelNames(name, channel))
+	consumer, err := r.consumer(hevent.NewChannelNames(name, channel))
 	if err != nil {
 		return tracer.Trace(err)
 	}
@@ -125,7 +125,7 @@ func (r *receiver) Subscribe(name, channel string, h kevent.EventHandler) error 
 	return r.subscribe(consumer, h)
 }
 
-func (r *receiver) subscribe(consumer pulsar.Consumer, h kevent.EventHandler) error {
+func (r *receiver) subscribe(consumer pulsar.Consumer, h hevent.EventHandler) error {
 	r.wg.Add(1)
 	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
 		ctx, message, err := r.extractMessage(msg)
@@ -134,7 +134,7 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, h kevent.EventHandler) er
 	return nil
 }
 
-func (r *receiver) SubscribeMulti(channels kevent.ChannelNames, h kevent.EventHandler) error {
+func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, h hevent.EventHandler) error {
 	if err := r.captureSubscriptionName(channels.SubscriptionName); err != nil {
 		return tracer.Trace(err)
 	}
@@ -171,7 +171,7 @@ func (r *receiver) captureSubscriptionName(name string) error {
 }
 
 // consumer returns new instance of the pulsar consumer with provided channel
-func (r *receiver) consumer(topics kevent.ChannelNames) (pulsar.Consumer, error) {
+func (r *receiver) consumer(topics hevent.ChannelNames) (pulsar.Consumer, error) {
 	options, err := r.cg(r.client, topics)
 	if err != nil {
 		return nil, tracer.Trace(err)
@@ -179,7 +179,7 @@ func (r *receiver) consumer(topics kevent.ChannelNames) (pulsar.Consumer, error)
 	return r.client.Subscribe(options)
 }
 
-func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx kitty.Context, m kevent.Message, err error) {
+func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx hexa.Context, m hevent.Message, err error) {
 	err = json.Unmarshal(msg.Message.Payload(), &m)
 	if err != nil {
 		err = tracer.Trace(err)
@@ -193,7 +193,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx kitty.Context
 	}
 
 	// extract Context:
-	ctx, err = kitty.CtxFromMap(m.Ctx, r.uf, r.l, r.t)
+	ctx, err = hexa.CtxFromMap(m.Ctx, r.uf, r.l, r.t)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
@@ -219,7 +219,7 @@ func receive(consumer pulsar.Consumer, wg *sync.WaitGroup, done chan bool, f fun
 }
 
 // newHandlerCtx returns new instance of the handler context.
-func newHandlerCtx(msg pulsar.ConsumerMessage) kevent.HandlerContext {
+func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 	return &handlerContext{
 		Context: context.Background(),
 		msg:     msg,
@@ -227,10 +227,10 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) kevent.HandlerContext {
 }
 
 // DefaultSubscriptionItem returns new instance of the subscriptionItem with default values.
-func DefaultSubscriptionItem(channel string, h kevent.EventHandler) SubscriptionItem {
+func DefaultSubscriptionItem(channel string, h hevent.EventHandler) SubscriptionItem {
 	return SubscriptionItem{
 		TopicNamingFormat: "%s",
-		ChannelNames:      kevent.NewChannelNames(channel, channel),
+		ChannelNames:      hevent.NewChannelNames(channel, channel),
 		EventHandler:      h,
 		ConsumerOptions:   ConsumerOptions(fmt.Sprintf("%s-sub", channel), pulsar.Exclusive),
 	}
@@ -252,8 +252,8 @@ func ConsumerOptions(name string, subscriptionType pulsar.SubscriptionType) puls
 	}
 }
 
-// NewReceiver returns new instance of pulsar implementation of the kitty event receiver.
-func NewReceiver(client pulsar.Client, uf kitty.UserFinder, cg ConsumerOptionsGenerator) (kevent.Receiver, error) {
+// NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
+func NewReceiver(client pulsar.Client, uf hexa.UserFinder, cg ConsumerOptionsGenerator) (hevent.Receiver, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
@@ -268,5 +268,5 @@ func NewReceiver(client pulsar.Client, uf kitty.UserFinder, cg ConsumerOptionsGe
 	}, nil
 }
 
-var _ kevent.HandlerContext = &handlerContext{}
-var _ kevent.Receiver = &receiver{}
+var _ hevent.HandlerContext = &handlerContext{}
+var _ hevent.Receiver = &receiver{}

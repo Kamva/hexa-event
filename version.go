@@ -1,5 +1,5 @@
-package kevent
+package hevent
 
-// Version is kitty-event current version.
+// Version is the package current version.
 const Version = "1.0.0"
 

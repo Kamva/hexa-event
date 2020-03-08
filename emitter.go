@@ -1,8 +1,8 @@
-package kevent
+package hevent
 
 import (
 	"context"
-	"github.com/Kamva/kitty"
+	 "github.com/Kamva/hexa"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -20,16 +20,16 @@ type (
 
 	// Header is the event Header
 	Header struct {
-		RequestID     string    `json:"request_id"`     // optional
-		CorrelationID string    `json:"correlation_id"` //required
-		ReplyChannel  string    `json:"reply_channel"`  // optional (use if need to reply the response)
-		Ctx           kitty.Map `json:"ctx"`            // extract context as map
+		RequestID     string   `json:"request_id"`     // optional
+		CorrelationID string   `json:"correlation_id"` //required
+		ReplyChannel  string   `json:"reply_channel"`  // optional (use if need to reply the response)
+		Ctx           hexa.Map `json:"ctx"`            // extract context as map
 	}
 
 	// Event is the event to send.
 	Event struct {
 		Header  `json:"header"`
-		Payload kitty.Map `json:"payload"`
+		Payload hexa.Map `json:"payload"`
 
 		Channel string `json:"-"` // required
 		Key     string `json:"-"` // required, can use to select event partition (e.g in pulsar & kafka).

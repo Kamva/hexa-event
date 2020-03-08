@@ -1,8 +1,8 @@
-package kevent
+package hevent
 
 import (
 	"context"
-	"github.com/Kamva/kitty"
+	 "github.com/Kamva/hexa"
 	"github.com/Kamva/tracer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -17,7 +17,7 @@ type (
 	}
 
 	// EventHandler handle events.
-	EventHandler func(HandlerContext, kitty.Context, Message, error)
+	EventHandler func(HandlerContext, hexa.Context, Message, error)
 
 	Receiver interface {
 		// Subscribe subscribe to the provided channel
