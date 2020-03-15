@@ -2,18 +2,23 @@ package hevent
 
 import (
 	"context"
-	 "github.com/Kamva/hexa"
+	"github.com/Kamva/hexa"
 	"github.com/Kamva/tracer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type (
-	// Topic is descriptions about the topic(especially topic's Name)
+	// ChannelNames contains description about the channel names
 	// that provide to the consumerGenerator to generate consumer.
 	ChannelNames struct {
+		// Name of the subscription.subscriptionName group listeners
+		// of a the channel. see some message-brokers like pulsar to
+		// detect usage.
 		SubscriptionName string
-		Names            []string // If Names is empty, so you should check pattern.
-		Pattern          string
+
+		// If Names is empty, so you should check pattern
+		Names   []string
+		Pattern string
 	}
 
 	// EventHandler handle events.
@@ -21,9 +26,9 @@ type (
 
 	Receiver interface {
 		// Subscribe subscribe to the provided channel
-		Subscribe(subscriptionName string, channel string, h EventHandler) error
+		Subscribe(subscriptionName string, channel string, payloadInstance interface{}, h EventHandler) error
 		// SubscribeMulti subscribe to multiple channel by either providing list of channels or pattern.
-		SubscribeMulti(ChannelNames, EventHandler) error
+		SubscribeMulti(chNames ChannelNames, payloadInstance interface{}, h EventHandler) error
 
 		// Start starts receiving the messages.
 		Start() error
@@ -41,7 +46,32 @@ type (
 		Nack()
 	}
 
-	Message = Event
+	// MessageHeader is header of the message.
+	MessageHeader struct {
+		CorrelationID string   `json:"correlation_id"` // required
+		ReplyChannel  string   `json:"reply_channel"`  // optional (use if need to reply the response)
+		Ctx           hexa.Map `json:"ctx"`            // extract context as map
+	}
+
+	// RawMssage is the message sent by emitter,
+	// we will convert RawMssage to message and then
+	// pass it to the event handler.
+	RawMessage struct {
+		MessageHeader `json:"header"`
+
+		// Marshaller is the marshaller name to use its un-marshaller.
+		Marshaller string `json:"marshaller"`
+
+		Payload []byte `json:"payload"` // marshalled protobuf or marshalled json.
+	}
+
+	// Message is the message that provide to event handler.
+	Message struct {
+		MessageHeader
+		// type of payload is same as provided payload
+		// instance that provide on subscription.
+		Payload interface{}
+	}
 )
 
 func (cn ChannelNames) Validate() error {
@@ -72,4 +102,19 @@ func NewChannelPattern(subscriptionName string, pattern string) ChannelNames {
 	return c
 }
 
+func (h MessageHeader) Validate() error {
+	return validation.ValidateStruct(&h,
+		validation.Field(&h.CorrelationID, validation.Required),
+		validation.Field(&h.Ctx, validation.Required),
+	)
+}
+
+func (e RawMessage) Validate() error {
+	return validation.ValidateStruct(&e,
+		validation.Field(&e.MessageHeader, validation.Required),
+	)
+}
+
 var _ validation.Validatable = &ChannelNames{}
+var _ validation.Validatable = &MessageHeader{}
+var _ validation.Validatable = &Message{}

@@ -5,6 +5,8 @@ github.com/Kamva/gutil v0.0.0-20200228120620-7f3374a9b2db h1:J2G9bxAJsTk8ZL9VBYr
 github.com/Kamva/gutil v0.0.0-20200228120620-7f3374a9b2db/go.mod h1:KvaAPqUTtjac/70L9pCuNEJX0FSH7+WrTo6sariE4FM=
 github.com/Kamva/gutil v0.0.0-20200306092721-d1590e417824 h1:Op8cMC7Oe6SJMjKg2gd3L+IM4LUh1UDYuKtN/ft/iKs=
 github.com/Kamva/gutil v0.0.0-20200306092721-d1590e417824/go.mod h1:KvaAPqUTtjac/70L9pCuNEJX0FSH7+WrTo6sariE4FM=
+github.com/Kamva/gutil v0.0.0-20200315223042-76d22ba655eb h1:vliX9M0OmUlF3GD1N5c3UmdRM/VPsX6O6w0zGRLrWvg=
+github.com/Kamva/gutil v0.0.0-20200315223042-76d22ba655eb/go.mod h1:KvaAPqUTtjac/70L9pCuNEJX0FSH7+WrTo6sariE4FM=
 github.com/Kamva/hexa v0.0.0-20200308110738-38a8ce43b158 h1:sU0v7TQdH5GRvW1aWZ+iR0U5JdlWcCjTX9yYkhW+NlA=
 github.com/Kamva/hexa v0.0.0-20200308110738-38a8ce43b158/go.mod h1:XCpu0jU6ypvEa0DPMHGDIX7JL8J+8mGjuUR8B7Hhfac=
 github.com/Kamva/tracer v0.0.0-20200227202933-3d5974771f25 h1:8+MV2TSg/Qn1lLryNLDX1A9hIRMBQhcHGdurD142TIU=
@@ -73,6 +75,7 @@ github.com/gobuffalo/packr/v2 v2.0.9/go.mod h1:emmyGweYTm6Kdper+iywB6YK5YzuKchGt
 github.com/gobuffalo/packr/v2 v2.2.0/go.mod h1:CaAwI0GPIAv+5wKLtv8Afwl+Cm78K/I/VCm/3ptBN+0=
 github.com/gobuffalo/syncx v0.0.0-20190224160051-33c29581e754/go.mod h1:HhnNqWY95UYwwW3uSASeV7vtgYkT2t16hJgV3AEPUpw=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
+github.com/gogo/protobuf v1.2.1 h1:/s5zKNz0uPFCZ5hddgPdo2TK2TVrUNMn0OOX8/aZMTE=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=

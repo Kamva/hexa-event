@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Kamva/hexa"
 	"github.com/Kamva/hexa-event"
 	"github.com/Kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
@@ -22,10 +23,11 @@ type (
 
 	// pulsar implementation of the hexa Emitter.
 	emitter struct {
-		client    pulsar.Client
-		pg        ProducerGenerator
-		producers map[string]pulsar.Producer
-		l         *sync.RWMutex
+		client     pulsar.Client
+		pg         ProducerGenerator
+		producers  map[string]pulsar.Producer
+		marshaller hevent.Marshaller
+		l          *sync.RWMutex
 	}
 )
 
@@ -37,7 +39,11 @@ func (e *emitter) ctx(c context.Context) context.Context {
 	return c
 }
 
-func (e *emitter) Emit(c context.Context, event *hevent.Event) (string, error) {
+func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
+	return e.EmitWithCtx(e.ctx(nil), ctx, event)
+}
+
+func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent.Event) (string, error) {
 	c = e.ctx(c)
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
@@ -48,7 +54,7 @@ func (e *emitter) Emit(c context.Context, event *hevent.Event) (string, error) {
 		return "", tracer.Trace(err)
 	}
 
-	msg, err := e.msg(event)
+	msg, err := e.msg(ctx, event)
 	if err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -61,11 +67,14 @@ func (e *emitter) Emit(c context.Context, event *hevent.Event) (string, error) {
 	return string(id.Serialize()), tracer.Trace(err)
 }
 
-func (e *emitter) msg(event *hevent.Event) (*pulsar.ProducerMessage, error) {
-	payload, err := json.Marshal(event)
+func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
+	msg, err := hevent.EventToRawMessage(ctx, event, e.marshaller)
 	if err != nil {
-		err = tracer.Trace(err)
-		return nil, err
+		return nil, tracer.Trace(err)
+	}
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return nil, tracer.Trace(err)
 	}
 
 	return &pulsar.ProducerMessage{
@@ -121,17 +130,19 @@ func CustomProducerGenerator(topicFormat string, options pulsar.ProducerOptions)
 }
 
 // NewEmitter returns new instance of pulsar emitter
-func NewEmitter(client pulsar.Client, pg ProducerGenerator) (hevent.Emitter, error) {
+func NewEmitter(client pulsar.Client, pg ProducerGenerator, marshaller hevent.Marshaller) (hevent.Emitter, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &emitter{
-		client:    client,
-		pg:        pg,
-		producers: make(map[string]pulsar.Producer),
-		l:         &sync.RWMutex{},
+		client:     client,
+		pg:         pg,
+		producers:  make(map[string]pulsar.Producer),
+		marshaller: marshaller,
+		l:          &sync.RWMutex{},
 	}, nil
 }
 
+// Assertion
 var _ hevent.Emitter = &emitter{}

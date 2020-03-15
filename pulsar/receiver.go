@@ -108,7 +108,7 @@ func (cg *consumerOptionsGenerator) findSubscriptionItem(subscriptionName string
 	return nil
 }
 
-func (r *receiver) Subscribe(name, channel string, h hevent.EventHandler) error {
+func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, h hevent.EventHandler) error {
 	if err := r.captureSubscriptionName(name); err != nil {
 		return tracer.Trace(err)
 	}
@@ -122,19 +122,20 @@ func (r *receiver) Subscribe(name, channel string, h hevent.EventHandler) error 
 		return tracer.Trace(err)
 	}
 
-	return r.subscribe(consumer, h)
+	return r.subscribe(consumer, payloadInstance, h)
 }
 
-func (r *receiver) subscribe(consumer pulsar.Consumer, h hevent.EventHandler) error {
+func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.EventHandler) error {
+
 	r.wg.Add(1)
 	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
-		ctx, message, err := r.extractMessage(msg)
+		ctx, message, err := r.extractMessage(msg, pi)
 		h(newHandlerCtx(msg), ctx, message, err)
 	})
 	return nil
 }
 
-func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, h hevent.EventHandler) error {
+func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, payloadInstance interface{}, h hevent.EventHandler) error {
 	if err := r.captureSubscriptionName(channels.SubscriptionName); err != nil {
 		return tracer.Trace(err)
 	}
@@ -148,7 +149,7 @@ func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, h hevent.EventHa
 		return tracer.Trace(err)
 	}
 
-	return r.subscribe(consumer, h)
+	return r.subscribe(consumer, payloadInstance, h)
 }
 
 func (r *receiver) Start() error {
@@ -179,8 +180,9 @@ func (r *receiver) consumer(topics hevent.ChannelNames) (pulsar.Consumer, error)
 	return r.client.Subscribe(options)
 }
 
-func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx hexa.Context, m hevent.Message, err error) {
-	err = json.Unmarshal(msg.Message.Payload(), &m)
+func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance interface{}) (ctx hexa.Context, m hevent.Message, err error) {
+	rawMsg := hevent.RawMessage{}
+	err = json.Unmarshal(msg.Message.Payload(), &rawMsg)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
@@ -198,7 +200,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx hexa.Context,
 		err = tracer.Trace(err)
 		return
 	}
-
+	m, err = hevent.RawMessageToMessage(&rawMsg, payloadInstance)
 	return
 }
 

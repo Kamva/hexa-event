@@ -2,7 +2,7 @@ package hevent
 
 import (
 	"context"
-	 "github.com/Kamva/hexa"
+	"github.com/Kamva/hexa"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -12,42 +12,31 @@ type (
 		// Emit send event to the channel.
 		// context can be nil.
 		// dont forget to validate the event here.
-		Emit(context.Context, *Event) (msgID string, err error)
+		Emit(hexa.Context, *Event) (msgID string, err error)
+
+		// EmitWithCtx is just same as Emit, but need to context.
+		EmitWithCtx(context.Context, hexa.Context, *Event) (msgID string, err error)
 
 		// Close close the connection
 		Close() error
 	}
 
-	// Header is the event Header
-	Header struct {
-		RequestID     string   `json:"request_id"`     // optional
-		CorrelationID string   `json:"correlation_id"` //required
-		ReplyChannel  string   `json:"reply_channel"`  // optional (use if need to reply the response)
-		Ctx           hexa.Map `json:"ctx"`            // extract context as map
-	}
-
 	// Event is the event to send.
 	Event struct {
-		Header  `json:"header"`
-		Payload hexa.Map `json:"payload"`
-
-		Channel string `json:"-"` // required
-		Key     string `json:"-"` // required, can use to select event partition (e.g in pulsar & kafka).
+		Key          string // required, can use to specify partition number.(see pulsar docs)
+		Channel      string
+		ReplyChannel string // optional (use if need to reply the response)
+		// It will marshall using either protobuf,json,... marshaller(relative to config of emitter).
+		// Dont forget that your emitter marshaller and event receivers un-marshaller should match with each other.
+		Payload interface{}
 	}
 )
-
-func (h Header) Validate() error {
-	return validation.ValidateStruct(&h,
-		validation.Field(&h.CorrelationID, validation.Required),
-		validation.Field(&h.Ctx, validation.Required),
-	)
-}
 
 func (e Event) Validate() error {
 	return validation.ValidateStruct(&e,
 		validation.Field(&e.Channel, validation.Required),
 		validation.Field(&e.Key, validation.Required),
-		validation.Field(&e.Header, validation.Required),
-		validation.Field(&e.Payload, validation.Required),
 	)
 }
+
+var _ validation.Validatable = &Event{}
