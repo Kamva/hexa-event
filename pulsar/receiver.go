@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Kamva/gutil"
 	"github.com/Kamva/hexa"
 	hevent "github.com/Kamva/hexa-event"
@@ -14,20 +13,14 @@ import (
 )
 
 type (
-	SubscriptionItem struct {
-		TopicNamingFormat string // We use this format to generate topics name.
-		hevent.ChannelNames
-		hevent.EventHandler
-		pulsar.ConsumerOptions
+
+	// ReceiverOptions is the options to create a new receiver instance.
+	ReceiverOptions struct {
+		CtxImporter              hexa.ContextExporterImporter
+		ConsumerOptionsGenerator ConsumerOptionsGenerator
 	}
 
-	// ConsumerOptionsGenerator generate new consumers.
-	ConsumerOptionsGenerator func(client pulsar.Client, topic hevent.ChannelNames) (pulsar.ConsumerOptions, error)
 
-	// consumerOptionsGenerator implements ConsumerOptionsGenerator function as its method.
-	consumerOptionsGenerator struct {
-		items []SubscriptionItem
-	}
 
 	// receiver is implementation of the event receiver.
 	receiver struct {
@@ -38,10 +31,7 @@ type (
 		done              chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
 		subscriptionNames []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
 
-		// Need these to create user context.
-		uf hexa.UserFinder
-		l  hexa.Logger
-		t  hexa.Translator
+		ctxImporter hexa.ContextExporterImporter
 	}
 
 	// handlerContext implements the HandlerContext interface.
@@ -59,57 +49,8 @@ func (h *handlerContext) Nack() {
 	h.msg.Consumer.Nack(h.msg.Message)
 }
 
-func (cg *consumerOptionsGenerator) Generator(client pulsar.Client, topics hevent.ChannelNames) (pulsar.ConsumerOptions, error) {
-	item := cg.findSubscriptionItem(topics.SubscriptionName)
-	if item == nil {
-		err := tracer.Trace(fmt.Errorf("pulsar option for the topic %s not found", topics.SubscriptionName))
-		return pulsar.ConsumerOptions{}, err
-	}
-
-	return cg.setTopicNameOnOptions(item.TopicNamingFormat, item.ConsumerOptions, topics), nil
-}
-
-// setTopicNameOnOptions set the topic name on the options.
-func (cg *consumerOptionsGenerator) setTopicNameOnOptions(format string, options pulsar.ConsumerOptions, topics hevent.ChannelNames) pulsar.ConsumerOptions {
-	options.Name = topics.SubscriptionName
-
-	if len(topics.Names) == 1 {
-		options.Topic = cg.setFinalTopicNames(format, topics.Names[0])[0]
-		return options
-	}
-
-	if len(topics.Names) > 1 {
-		options.Topics = cg.setFinalTopicNames(format, topics.Names...)
-		return options
-	}
-
-	options.TopicsPattern = cg.setFinalTopicNames(format, topics.Pattern)[0]
-	return options
-}
-
-// setFinalTopicNames set the final name of topics.
-func (cg *consumerOptionsGenerator) setFinalTopicNames(format string, names ...string) []string {
-	finalNames := make([]string, len(names))
-	for i, n := range names {
-		finalNames[i] = fmt.Sprintf(format, n)
-	}
-
-	return finalNames
-}
-
-// findSubscriptionItem find subscription item in provided list.
-func (cg *consumerOptionsGenerator) findSubscriptionItem(subscriptionName string) *SubscriptionItem {
-	for _, item := range cg.items {
-		if item.ChannelNames.SubscriptionName == subscriptionName {
-			return &item
-		}
-	}
-
-	return nil
-}
-
 func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, h hevent.EventHandler) error {
-	if err := r.captureSubscriptionName(name); err != nil {
+	if err := r.checkSubscriptionNameIsUnique(name); err != nil {
 		return tracer.Trace(err)
 	}
 
@@ -136,7 +77,7 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.
 }
 
 func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, payloadInstance interface{}, h hevent.EventHandler) error {
-	if err := r.captureSubscriptionName(channels.SubscriptionName); err != nil {
+	if err := r.checkSubscriptionNameIsUnique(channels.SubscriptionName); err != nil {
 		return tracer.Trace(err)
 	}
 
@@ -162,7 +103,7 @@ func (r *receiver) Close() error {
 	r.wg.Wait()
 	return nil
 }
-func (r *receiver) captureSubscriptionName(name string) error {
+func (r *receiver) checkSubscriptionNameIsUnique(name string) error {
 	if gutil.Contains(r.subscriptionNames, name) {
 		return tracer.Trace(errors.New("name is not unique"))
 	}
@@ -189,13 +130,12 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 	}
 
 	// validate the message
-	if err = m.Validate(); err != nil {
+	if err = rawMsg.Validate(); err != nil {
 		err = tracer.Trace(err)
 		return
 	}
-
 	// extract Context:
-	ctx, err = hexa.CtxFromMap(m.Ctx, r.uf, r.l, r.t)
+	ctx, err = r.ctxImporter.Import(rawMsg.MessageHeader.Ctx)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
@@ -228,42 +168,16 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 	}
 }
 
-// DefaultSubscriptionItem returns new instance of the subscriptionItem with default values.
-func DefaultSubscriptionItem(channel string, h hevent.EventHandler) SubscriptionItem {
-	return SubscriptionItem{
-		TopicNamingFormat: "%s",
-		ChannelNames:      hevent.NewChannelNames(channel, channel),
-		EventHandler:      h,
-		ConsumerOptions:   ConsumerOptions(fmt.Sprintf("%s-sub", channel), pulsar.Exclusive),
-	}
-}
-
-// ConsumerOptionsGeneratorByList get list of channels with their
-// consumer options and return a consumer generator.
-func NewConsumerOptionsGenerator(items []SubscriptionItem) ConsumerOptionsGenerator {
-	g := &consumerOptionsGenerator{items: items}
-
-	return g.Generator
-}
-
-// ConsumerOptions returns new instance of pulsar consumer options.
-func ConsumerOptions(name string, subscriptionType pulsar.SubscriptionType) pulsar.ConsumerOptions {
-	return pulsar.ConsumerOptions{
-		SubscriptionName: name,
-		Type:             subscriptionType,
-	}
-}
-
 // NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
-func NewReceiver(client pulsar.Client, uf hexa.UserFinder, cg ConsumerOptionsGenerator) (hevent.Receiver, error) {
+func NewReceiver(client pulsar.Client, options ReceiverOptions) (hevent.Receiver, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &receiver{
-		uf:            uf,
+		ctxImporter:   options.CtxImporter,
 		client:        client,
-		cg:            cg,
+		cg:            options.ConsumerOptionsGenerator,
 		subscriptions: make([]pulsar.Consumer, 0),
 		wg:            &sync.WaitGroup{},
 		done:          make(chan bool),

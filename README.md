@@ -6,7 +6,7 @@ go get github.com/Kamva/hexa-event
 ```
 
 #### Todo:
-- [ ] Add support of protocol buffer for sending events. 
+- [x] Add support of protocol buffer to send events. 
 - [ ] Mock driver 
 - [ ] Write Tests.
 - [ ] Implement mock

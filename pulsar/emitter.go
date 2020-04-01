@@ -18,6 +18,13 @@ import (
 )
 
 type (
+	// EmitterOptions contains options that can provide on create emitter.
+	EmitterOptions struct {
+		ProducerGenerator ProducerGenerator
+		CtxExporter       hexa.ContextExporterImporter
+		Marshaller        hevent.Marshaller
+	}
+
 	// ProducerGenerator generate new producer
 	ProducerGenerator func(c pulsar.Client, topic string) (pulsar.Producer, error)
 
@@ -28,6 +35,8 @@ type (
 		producers  map[string]pulsar.Producer
 		marshaller hevent.Marshaller
 		l          *sync.RWMutex
+
+		ctxExporter hexa.ContextExporterImporter
 	}
 )
 
@@ -68,7 +77,7 @@ func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent
 }
 
 func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
-	msg, err := hevent.EventToRawMessage(ctx, event, e.marshaller)
+	msg, err := hevent.EventToRawMessage(ctx, event, e.ctxExporter, e.marshaller)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -130,17 +139,18 @@ func CustomProducerGenerator(topicFormat string, options pulsar.ProducerOptions)
 }
 
 // NewEmitter returns new instance of pulsar emitter
-func NewEmitter(client pulsar.Client, pg ProducerGenerator, marshaller hevent.Marshaller) (hevent.Emitter, error) {
+func NewEmitter(client pulsar.Client, options EmitterOptions) (hevent.Emitter, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &emitter{
-		client:     client,
-		pg:         pg,
-		producers:  make(map[string]pulsar.Producer),
-		marshaller: marshaller,
-		l:          &sync.RWMutex{},
+		client:      client,
+		pg:          options.ProducerGenerator,
+		producers:   make(map[string]pulsar.Producer),
+		marshaller:  options.Marshaller,
+		l:           &sync.RWMutex{},
+		ctxExporter: options.CtxExporter,
 	}, nil
 }
 

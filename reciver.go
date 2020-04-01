@@ -16,7 +16,7 @@ type (
 		// detect usage.
 		SubscriptionName string
 
-		// If Names is empty, so you should check pattern
+		// If Names is empty, so event receiver checks the pattern
 		Names   []string
 		Pattern string
 	}

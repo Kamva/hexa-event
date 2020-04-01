@@ -2,16 +2,21 @@ package hevent
 
 import (
 	"github.com/Kamva/hexa"
+	"github.com/Kamva/tracer"
 )
 
 // EventToRawMessage converts Event instance to Message.
-func EventToRawMessage(ctx hexa.Context, event *Event, marshaller Marshaller) (*RawMessage, error) {
+func EventToRawMessage(ctx hexa.Context, event *Event, ce hexa.ContextExporterImporter, marshaller Marshaller) (*RawMessage, error) {
 	payload, err := marshaller.Marshal(event.Payload)
+	exportedCtx, err := ce.Export(ctx)
+	if err != nil {
+		return nil, tracer.Trace(err)
+	}
 	return &RawMessage{
 		MessageHeader: MessageHeader{
 			CorrelationID: ctx.CorrelationID(),
 			ReplyChannel:  event.ReplyChannel,
-			Ctx:           ctx.ToMap(),
+			Ctx:           exportedCtx,
 		},
 		Marshaller: marshaller.Name(),
 		Payload:    payload,
