@@ -21,7 +21,6 @@ type (
 	}
 
 
-
 	// receiver is implementation of the event receiver.
 	receiver struct {
 		client            pulsar.Client

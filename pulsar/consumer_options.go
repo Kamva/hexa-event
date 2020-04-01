@@ -8,17 +8,11 @@ import (
 )
 
 type (
-	// SubscriptionItem use to describe a subscription for receiver.
-	// You can use this Subscription Item firstly to set ConsumerGenerator
-	// and secondly to subscribe just by running a loop over Subscription Items
-	// list and listen to all channels. see "examples" dir.
-	SubscriptionItem struct {
+	// ConsumerOptionsItem contains options to generate new consumerOptions for specified channel.
+	ConsumerOptionsItem struct {
 		TopicNamingFormat string // We use this format to generate topics name.
 		Channel           hevent.ChannelNames
-		// We set this options here , so you by defining just a simple Subscritpion Item, can set both
-		// pulsar consumer options and handler.
-		Handler         hevent.EventHandler
-		ConsumerOptions pulsar.ConsumerOptions
+		ConsumerOptions   pulsar.ConsumerOptions
 	}
 
 	// ConsumerOptionsGenerator generate new consumers.
@@ -26,10 +20,9 @@ type (
 
 	// defaultConsumerOptionsGenerator implements ConsumerOptionsGenerator function as its method.
 	defaultConsumerOptionsGenerator struct {
-		items []SubscriptionItem
+		items []ConsumerOptionsItem
 	}
 )
-
 
 func (cg *defaultConsumerOptionsGenerator) Generator(client pulsar.Client, topics hevent.ChannelNames) (pulsar.ConsumerOptions, error) {
 	item := cg.findSubscriptionItem(topics.SubscriptionName)
@@ -70,7 +63,7 @@ func (cg *defaultConsumerOptionsGenerator) formatTopicNames(format string, names
 }
 
 // findSubscriptionItem find subscription item in provided list.
-func (cg *defaultConsumerOptionsGenerator) findSubscriptionItem(subscriptionName string) *SubscriptionItem {
+func (cg *defaultConsumerOptionsGenerator) findSubscriptionItem(subscriptionName string) *ConsumerOptionsItem {
 	for _, item := range cg.items {
 		if item.Channel.SubscriptionName == subscriptionName {
 			return &item
@@ -80,20 +73,18 @@ func (cg *defaultConsumerOptionsGenerator) findSubscriptionItem(subscriptionName
 	return nil
 }
 
-
-// DefaultSubscriptionItem returns new instance of the subscriptionItem with default values.
-func DefaultSubscriptionItem(channel string, h hevent.EventHandler) SubscriptionItem {
-	return SubscriptionItem{
+// DefaultChannelOptions returns new instance of the subscriptionItem with default values.
+func DefaultChannelOptions(channel string) ConsumerOptionsItem {
+	return ConsumerOptionsItem{
 		TopicNamingFormat: "%s",
 		Channel:           hevent.NewChannelNames(channel, channel),
-		Handler:           h,
 		ConsumerOptions:   ConsumerOptions(fmt.Sprintf("%s-sub", channel), pulsar.Exclusive),
 	}
 }
 
 // ConsumerOptionsGeneratorByList get list of channels with their
 // consumer options and return a consumer generator.
-func NewConsumerOptionsGenerator(items []SubscriptionItem) ConsumerOptionsGenerator {
+func NewConsumerOptionsGenerator(items []ConsumerOptionsItem) ConsumerOptionsGenerator {
 	g := &defaultConsumerOptionsGenerator{items: items}
 
 	return g.Generator

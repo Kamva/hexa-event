@@ -59,13 +59,11 @@ func send() {
 	res, err := emitter.Emit(hexa.NewCtx(nil, "test-correlation-id", "en", hexa.NewGuest(), l, t), event)
 	gutil.PanicErr(err)
 	fmt.Println(res)
-	fmt.Println("the end.")
+	fmt.Println("message sent :)")
 }
 
 func receive() {
-	channels := []hexapulsar.SubscriptionItem{
-		hexapulsar.DefaultSubscriptionItem("hexa-test", sayHello),
-	}
+	channel := hexapulsar.DefaultSubscriptionItemPack("hexa-test", &HelloPayload{}, sayHello)
 
 	// From here for all receivers is same.
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
@@ -75,7 +73,7 @@ func receive() {
 
 	receiver, err := hexapulsar.NewReceiver(client, hexapulsar.ReceiverOptions{
 		CtxImporter:              ctxExporterImporter,
-		ConsumerOptionsGenerator: hexapulsar.NewConsumerOptionsGenerator(channels),
+		ConsumerOptionsGenerator: hexapulsar.NewConsumerOptionsGenerator([]hexapulsar.ConsumerOptionsItem{channel.ConsumerOptions}),
 	})
 	gutil.PanicErr(err)
 
@@ -84,11 +82,7 @@ func receive() {
 		gutil.PanicErr(err)
 	}()
 
-	for _, event := range channels {
-		err := receiver.SubscribeMulti(event.Channel, &HelloPayload{}, event.Handler)
-		gutil.PanicErr(err)
-	}
-
+	err = receiver.SubscribeMulti(channel.SubscriptionItem.Channel, channel.SubscriptionItem.PayloadInstance, channel.SubscriptionItem.Handler)
 	err = receiver.Start()
 	gutil.PanicErr(err)
 }
