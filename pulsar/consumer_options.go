@@ -74,9 +74,10 @@ func (cg *defaultConsumerOptionsGenerator) findSubscriptionItem(subscriptionName
 }
 
 // DefaultChannelOptions returns new instance of the subscriptionItem with default values.
-func DefaultChannelOptions(channel string) ConsumerOptionsItem {
+// sample format can be "%s" or "persistent://public/{microservice_name}/%s"
+func DefaultChannelOptions(format, channel string) ConsumerOptionsItem {
 	return ConsumerOptionsItem{
-		TopicNamingFormat: "%s",
+		TopicNamingFormat: format,
 		Channel:           hevent.NewChannelNames(channel, channel),
 		ConsumerOptions:   ConsumerOptions(fmt.Sprintf("%s-sub", channel), pulsar.Exclusive),
 	}

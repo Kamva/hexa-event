@@ -45,9 +45,9 @@ func (l SubscribeItemPackList) Append(lists ...SubscribeItemPackList) SubscribeI
 }
 
 // DefaultSubscriptionItemPack returns new instance of the SubscribeItemPack
-func DefaultSubscriptionItemPack(channel string, payloadInstance interface{}, handler hevent.EventHandler) SubscribeItemPack {
+func DefaultSubscriptionItemPack(format, channel string, payloadInstance interface{}, handler hevent.EventHandler) SubscribeItemPack {
 	return SubscribeItemPack{
-		ConsumerOptions:  DefaultChannelOptions(channel),
+		ConsumerOptions:  DefaultChannelOptions(format, channel),
 		SubscriptionItem: hevent.DefaultSubscriptionItem(channel, payloadInstance, handler),
 	}
 }

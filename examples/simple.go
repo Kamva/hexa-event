@@ -63,7 +63,7 @@ func send() {
 }
 
 func receive() {
-	channel := hexapulsar.DefaultSubscriptionItemPack("hexa-test", &HelloPayload{}, sayHello)
+	channel := hexapulsar.DefaultSubscriptionItemPack("%s","hexa-test", &HelloPayload{}, sayHello)
 
 	// From here for all receivers is same.
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
