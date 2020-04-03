@@ -33,6 +33,17 @@ func (l SubscribeItemPackList) SubscriptionItems() []hevent.SubscriptionItem {
 	return list
 }
 
+// SubscriptionItems returns list of SubscriptionItems
+func (l SubscribeItemPackList) Append(lists ...SubscribeItemPackList) SubscribeItemPackList {
+	for _, otherList := range lists {
+		for _, v := range otherList {
+			l = append(l, v)
+		}
+	}
+
+	return l
+}
+
 // DefaultSubscriptionItemPack returns new instance of the SubscribeItemPack
 func DefaultSubscriptionItemPack(channel string, payloadInstance interface{}, handler hevent.EventHandler) SubscribeItemPack {
 	return SubscribeItemPack{
