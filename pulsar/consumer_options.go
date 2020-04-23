@@ -58,7 +58,6 @@ func (cg *defaultConsumerOptionsGenerator) formatTopicNames(format string, names
 	for i, n := range names {
 		finalNames[i] = fmt.Sprintf(format, n)
 	}
-
 	return finalNames
 }
 

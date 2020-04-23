@@ -18,6 +18,7 @@ type HelloPayload struct {
 }
 
 var clientURL = "pulsar://localhost:6650"
+var format = "%s"
 var t = hexatranslator.NewEmptyDriver()
 var l = hexalogger.NewPrinterDriver()
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
@@ -40,7 +41,7 @@ func send() {
 	var l = hexalogger.NewPrinterDriver()
 
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
-		ProducerGenerator: hexapulsar.DefaultProducerGenerator("%s"),
+		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),
 		CtxExporter:       ctxExporterImporter,
 		Marshaller:        hevent.NewJsonMarshaller(),
 	})
@@ -63,7 +64,7 @@ func send() {
 }
 
 func receive() {
-	channel := hexapulsar.DefaultSubscriptionItemPack("%s","hexa-test", &HelloPayload{}, sayHello)
+	channel := hexapulsar.DefaultSubscriptionItemPack(format, "hexa-test", &HelloPayload{}, sayHello)
 
 	// From here for all receivers is same.
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
@@ -93,7 +94,7 @@ func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err er
 	fmt.Println(m.MessageHeader)
 	p := m.Payload.(*HelloPayload)
 	fmt.Println(p.Hello)
-	fmt.Println(c.User().IsGuest())
+	fmt.Println(c.User().Type())
 	hc.Ack()
 }
 
