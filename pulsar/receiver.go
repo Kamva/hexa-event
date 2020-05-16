@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/Kamva/gutil"
 	"github.com/Kamva/hexa"
 	hevent "github.com/Kamva/hexa-event"
 	"github.com/Kamva/tracer"
@@ -28,7 +27,6 @@ type (
 		subscriptions     []pulsar.Consumer
 		wg                *sync.WaitGroup
 		done              chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
-		subscriptionNames []string  // contains subscriptions names, subscription name for pulsar driver need to be unique.
 
 		ctxImporter hexa.ContextExporterImporter
 	}
@@ -49,10 +47,6 @@ func (h *handlerContext) Nack() {
 }
 
 func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, h hevent.EventHandler) error {
-	if err := r.checkSubscriptionNameIsUnique(name); err != nil {
-		return tracer.Trace(err)
-	}
-
 	if channel == "" {
 		return tracer.Trace(errors.New("channel name can not be empty"))
 	}
@@ -66,7 +60,6 @@ func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, 
 }
 
 func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.EventHandler) error {
-
 	r.wg.Add(1)
 	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
 		ctx, message, err := r.extractMessage(msg, pi)
@@ -76,10 +69,6 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.
 }
 
 func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, payloadInstance interface{}, h hevent.EventHandler) error {
-	if err := r.checkSubscriptionNameIsUnique(channels.SubscriptionName); err != nil {
-		return tracer.Trace(err)
-	}
-
 	if err := channels.Validate(); err != nil {
 		return tracer.Trace(err)
 	}
@@ -100,14 +89,6 @@ func (r *receiver) Start() error {
 func (r *receiver) Close() error {
 	close(r.done)
 	r.wg.Wait()
-	return nil
-}
-func (r *receiver) checkSubscriptionNameIsUnique(name string) error {
-	if gutil.Contains(r.subscriptionNames, name) {
-		return tracer.Trace(errors.New("name is not unique"))
-	}
-
-	r.subscriptionNames = append(r.subscriptionNames, name)
 	return nil
 }
 
