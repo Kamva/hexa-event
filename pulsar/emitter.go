@@ -25,7 +25,7 @@ type (
 		Marshaller        hevent.Marshaller
 	}
 
-	// ProducerGenerator generate new producer
+	// ProducerGenerator setOptionValues new producer
 	ProducerGenerator func(c pulsar.Client, topic string) (pulsar.Producer, error)
 
 	// pulsar implementation of the hexa Emitter.
@@ -101,7 +101,7 @@ func (e *emitter) producer(topic string) (pulsar.Producer, error) {
 		return p, nil
 	}
 
-	// generate new producer
+	// setOptionValues new producer
 	p, err := e.pg(e.client, topic)
 	e.producers[topic] = p
 	return p, tracer.Trace(err)

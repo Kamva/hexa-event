@@ -13,22 +13,15 @@ import (
 
 type (
 
-	// ReceiverOptions is the options to create a new receiver instance.
-	ReceiverOptions struct {
-		CtxImporter              hexa.ContextExporterImporter
-		ConsumerOptionsGenerator ConsumerOptionsGenerator
-	}
-
-
 	// receiver is implementation of the event receiver.
 	receiver struct {
-		client            pulsar.Client
-		cg                ConsumerOptionsGenerator
-		subscriptions     []pulsar.Consumer
-		wg                *sync.WaitGroup
-		done              chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
+		client                   pulsar.Client
+		consumerOptionsGenerator consumerOptionsGenerator
+		consumers                []pulsar.Consumer
+		wg                       *sync.WaitGroup
+		done                     chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
 
-		ctxImporter hexa.ContextExporterImporter
+		ctxExporterImporter hexa.ContextExporterImporter
 	}
 
 	// handlerContext implements the HandlerContext interface.
@@ -46,12 +39,8 @@ func (h *handlerContext) Nack() {
 	h.msg.Consumer.Nack(h.msg.Message)
 }
 
-func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, h hevent.EventHandler) error {
-	if channel == "" {
-		return tracer.Trace(errors.New("channel name can not be empty"))
-	}
-
-	consumer, err := r.consumer(hevent.NewChannelNames(name, channel))
+func (r *receiver) Subscribe(channel string, payloadInstance interface{}, h hevent.EventHandler) error {
+	consumer, err := r.consumer(hevent.NewSubscriptionOptions(channel, payloadInstance, h))
 	if err != nil {
 		return tracer.Trace(err)
 	}
@@ -59,26 +48,17 @@ func (r *receiver) Subscribe(name, channel string, payloadInstance interface{}, 
 	return r.subscribe(consumer, payloadInstance, h)
 }
 
-func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.EventHandler) error {
-	r.wg.Add(1)
-	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
-		ctx, message, err := r.extractMessage(msg, pi)
-		h(newHandlerCtx(msg), ctx, message, err)
-	})
-	return nil
-}
-
-func (r *receiver) SubscribeMulti(channels hevent.ChannelNames, payloadInstance interface{}, h hevent.EventHandler) error {
-	if err := channels.Validate(); err != nil {
+func (r *receiver) SubscribeWithOptions(so *hevent.SubscriptionOptions) error {
+	if err := so.Validate(); err != nil {
 		return tracer.Trace(err)
 	}
 
-	consumer, err := r.consumer(channels)
+	consumer, err := r.consumer(so)
 	if err != nil {
 		return tracer.Trace(err)
 	}
 
-	return r.subscribe(consumer, payloadInstance, h)
+	return r.subscribe(consumer, so.PayloadInstance, so.Handler)
 }
 
 func (r *receiver) Start() error {
@@ -92,9 +72,18 @@ func (r *receiver) Close() error {
 	return nil
 }
 
+func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.EventHandler) error {
+	r.wg.Add(1)
+	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
+		ctx, message, err := r.extractMessage(msg, pi)
+		h(newHandlerCtx(msg), ctx, message, err)
+	})
+	return nil
+}
+
 // consumer returns new instance of the pulsar consumer with provided channel
-func (r *receiver) consumer(topics hevent.ChannelNames) (pulsar.Consumer, error) {
-	options, err := r.cg(r.client, topics)
+func (r *receiver) consumer(so *hevent.SubscriptionOptions) (pulsar.Consumer, error) {
+	options, err := r.consumerOptionsGenerator.Generate(so)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -115,7 +104,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 		return
 	}
 	// extract Context:
-	ctx, err = r.ctxImporter.Import(rawMsg.MessageHeader.Ctx)
+	ctx, err = r.ctxExporterImporter.Import(rawMsg.MessageHeader.Ctx)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
@@ -149,18 +138,18 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 }
 
 // NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
-func NewReceiver(client pulsar.Client, options ReceiverOptions) (hevent.Receiver, error) {
+func NewReceiver(client pulsar.Client, cei hexa.ContextExporterImporter) (hevent.Receiver, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &receiver{
-		ctxImporter:   options.CtxImporter,
-		client:        client,
-		cg:            options.ConsumerOptionsGenerator,
-		subscriptions: make([]pulsar.Consumer, 0),
-		wg:            &sync.WaitGroup{},
-		done:          make(chan bool),
+		ctxExporterImporter:      cei,
+		client:                   client,
+		consumerOptionsGenerator: consumerOptionsGenerator{},
+		consumers:                make([]pulsar.Consumer, 0),
+		wg:                       &sync.WaitGroup{},
+		done:                     make(chan bool),
 	}, nil
 }
 
