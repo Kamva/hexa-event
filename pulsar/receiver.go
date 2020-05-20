@@ -39,6 +39,9 @@ func (h *handlerContext) Nack() {
 	h.msg.Consumer.Nack(h.msg.Message)
 }
 
+// Subscribe on the pulsar driver will use consumerOptionsGenerator to generate consumerOptions,
+// so check it to know what will be default values of the pulsar subscription name and subscription
+// type.
 func (r *receiver) Subscribe(channel string, payloadInstance interface{}, h hevent.EventHandler) error {
 	consumer, err := r.consumer(hevent.NewSubscriptionOptions(channel, payloadInstance, h))
 	if err != nil {

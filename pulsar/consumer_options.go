@@ -76,11 +76,17 @@ type generateOptions struct {
 }
 
 // setOptionValues gets available options and set values on pulsar options.
+// If you do not set the subscription name, it will be same as the topic(channel) name.
+// If you do not set the subscription type, it will be "Exclusive".
 func (g consumerOptionsGenerator) setOptionValues(o generateOptions) (pulsar.ConsumerOptions, error) {
 	var consumerOptions = o.consumerOptions
 
-	if consumerOptions.SubscriptionName == "" && o.so.Channel == "" {
-		return consumerOptions, tracer.Trace(SubscriptionNameError)
+	if consumerOptions.SubscriptionName == "" {
+		if o.so.Channel == "" {
+			return consumerOptions, tracer.Trace(SubscriptionNameError)
+		}
+
+		consumerOptions.SubscriptionName = o.so.Channel
 	}
 
 	// Generate Topics
@@ -97,26 +103,46 @@ func (g consumerOptionsGenerator) setOptionValues(o generateOptions) (pulsar.Con
 	return consumerOptions, nil
 }
 
-// WithExtraOptions sets extra options on the subscription options.
-func WithExtraOptions(so *hevent.SubscriptionOptions, formatter, subName string) {
-	WithFormatterOption(so, formatter)
-	WithConsumerOptions(so, subName, pulsar.Exclusive)
+// subscribeOptionsBuilder is a builder to build subscription options
+// according to the pulsar options.
+type SubscribeOptionsBuilder struct {
+	formatter TopicFormatter
+	o         pulsar.ConsumerOptions
+	so        *hevent.SubscriptionOptions
 }
 
-// WithFormatterOption sets formatter on the subscription options.
-func WithFormatterOption(so *hevent.SubscriptionOptions, formatter string) {
-	so.WithExtra(TopicFormatter(formatter))
+// Set gets options which we want to set frequently.
+func (b *SubscribeOptionsBuilder) Set(formatter, subName string, t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
+	return b.WithFormatter(formatter).WithSubscriptionName(subName).WithType(t)
 }
 
-// WithConsumerOptions sets pulsar consumer options on the subscription options.
-func WithConsumerOptions(so *hevent.SubscriptionOptions, subName string, subType pulsar.SubscriptionType) {
-	WithConsumerFullOptions(so, pulsar.ConsumerOptions{
-		SubscriptionName: subName,
-		Type:             subType,
-	})
+// WithFormatter sets the formatter.
+func (b *SubscribeOptionsBuilder) WithFormatter(f string) *SubscribeOptionsBuilder {
+	b.formatter = TopicFormatter(f)
+	return b
 }
 
-// WithConsumerFullOptions sets pulsar consumer options on the subscription options.
-func WithConsumerFullOptions(so *hevent.SubscriptionOptions, co pulsar.ConsumerOptions) {
-	so.WithExtra(co)
+// WithSubscriptionName sets the subscription name.
+func (b *SubscribeOptionsBuilder) WithSubscriptionName(sub string) *SubscribeOptionsBuilder {
+	b.o.SubscriptionName = sub
+	return b
+}
+
+// WithType sets the subscription type.
+func (b *SubscribeOptionsBuilder) WithType(t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
+	b.o.Type = t
+	return b
+}
+
+// WithOptions sets the pulsar consumer options.
+func (b *SubscribeOptionsBuilder) WithOptions(o pulsar.ConsumerOptions) *SubscribeOptionsBuilder {
+	b.o = o
+	return b
+}
+
+// Build builds the hexa-event subscriptionOptions.
+func (b *SubscribeOptionsBuilder) Build() *hevent.SubscriptionOptions {
+	b.so.WithExtra(b.formatter)
+	b.so.WithExtra(b.o)
+	return b.so
 }
