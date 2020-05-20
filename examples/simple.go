@@ -17,8 +17,9 @@ type HelloPayload struct {
 	Hello string `json:"hello"`
 }
 
-var clientURL = "pulsar://localhost:6650"
-var format = "%s"
+const clientURL = "pulsar://localhost:6650"
+const format = "%s"
+const channelName="hexa-example"
 var t = hexatranslator.NewEmptyDriver()
 var l = hexalogger.NewPrinterDriver()
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
@@ -53,7 +54,7 @@ func send() {
 
 	event := &hevent.Event{
 		Payload: HelloPayload{Hello: "from Hexa2:)"},
-		Channel: "hexa-test",
+		Channel: channelName,
 		Key:     "test-key",
 	}
 
@@ -64,18 +65,13 @@ func send() {
 }
 
 func receive() {
-	channel := hexapulsar.DefaultSubscriptionItemPack(format, "hexa-test", &HelloPayload{}, sayHello)
-
 	// From here for all receivers is same.
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
 		URL: clientURL,
 	})
 	gutil.PanicErr(err)
 
-	receiver, err := hexapulsar.NewReceiver(client, hexapulsar.ReceiverOptions{
-		CtxImporter:              ctxExporterImporter,
-		ConsumerOptionsGenerator: hexapulsar.NewConsumerOptionsGenerator([]hexapulsar.ConsumerOptionsItem{channel.ConsumerOptions}),
-	})
+	receiver, err := hexapulsar.NewReceiver(client, ctxExporterImporter)
 	gutil.PanicErr(err)
 
 	defer func() {
@@ -83,7 +79,7 @@ func receive() {
 		gutil.PanicErr(err)
 	}()
 
-	err = receiver.SubscribeMulti(channel.SubscriptionItem.Channel, channel.SubscriptionItem.PayloadInstance, channel.SubscriptionItem.Handler)
+	err = receiver.Subscribe(channelName, &HelloPayload{}, sayHello)
 	err = receiver.Start()
 	gutil.PanicErr(err)
 }

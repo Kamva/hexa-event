@@ -1,99 +1,148 @@
 package hexapulsar
 
 import (
+	"errors"
 	"fmt"
 	hevent "github.com/Kamva/hexa-event"
 	"github.com/Kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
 )
 
+// SubscriptionNameError is the error to specify both subscription_name and the topic_name is empty.
+var SubscriptionNameError = errors.New("both subscriptionName and topic name are empty, we can not setOptionValues ")
+
 type (
-	// ConsumerOptionsItem contains options to generate new consumerOptions for specified channel.
-	ConsumerOptionsItem struct {
-		TopicNamingFormat string // We use this format to generate topics name.
-		Channel           hevent.ChannelNames
-		ConsumerOptions   pulsar.ConsumerOptions
-	}
+	// TopicFormatter is the formatter which can use to format topic.
+	// e.g "persistent://my_tenant/hello/%s" , so if we has a topic
+	// named "john" => topicFormatter format it and finally we have
+	// "persistent://my_tenant/hello/john" as our topic
+	TopicFormatter string
 
-	// ConsumerOptionsGenerator generate new consumers.
-	ConsumerOptionsGenerator func(client pulsar.Client, topic hevent.ChannelNames) (pulsar.ConsumerOptions, error)
-
-	// defaultConsumerOptionsGenerator implements ConsumerOptionsGenerator function as its method.
-	defaultConsumerOptionsGenerator struct {
-		items []ConsumerOptionsItem
+	// consumerOptionsGenerator Implement the ConsumerOptionsGenerator
+	consumerOptionsGenerator struct {
 	}
 )
 
-func (cg *defaultConsumerOptionsGenerator) Generator(client pulsar.Client, topics hevent.ChannelNames) (pulsar.ConsumerOptions, error) {
-	item := cg.findSubscriptionItem(topics.SubscriptionName)
-	if item == nil {
-		err := tracer.Trace(fmt.Errorf("pulsar option for the topic %s not found", topics.SubscriptionName))
-		return pulsar.ConsumerOptions{}, err
+// Format format the topic
+func (f TopicFormatter) Format(topic string) string {
+	if topic == "" {
+		return ""
 	}
-
-	return cg.SetConsumerTopicNames(item.TopicNamingFormat, item.ConsumerOptions, topics), nil
+	return fmt.Sprintf(string(f), topic)
 }
 
-// SetConsumerTopicNames set the topic name on the options.
-func (cg *defaultConsumerOptionsGenerator) SetConsumerTopicNames(format string, options pulsar.ConsumerOptions, topics hevent.ChannelNames) pulsar.ConsumerOptions {
-	options.Name = topics.SubscriptionName
-
-	if len(topics.Names) == 1 {
-		options.Topic = cg.formatTopicNames(format, topics.Names[0])[0]
-		return options
+// FormatList format list of topics
+func (f TopicFormatter) FormatList(topics []string) []string {
+	if topics == nil {
+		return nil
 	}
 
-	if len(topics.Names) > 1 {
-		options.Topics = cg.formatTopicNames(format, topics.Names...)
-		return options
+	formattedTopics := make([]string, len(topics))
+	for i, v := range topics {
+		formattedTopics[i] = f.Format(v)
 	}
-
-	options.TopicsPattern = cg.formatTopicNames(format, topics.Pattern)[0]
-	return options
+	return formattedTopics
 }
 
-// formatTopicNames format the topic name relative to provided format.
-func (cg *defaultConsumerOptionsGenerator) formatTopicNames(format string, names ...string) []string {
-	finalNames := make([]string, len(names))
-	for i, n := range names {
-		finalNames[i] = fmt.Sprintf(format, n)
-	}
-	return finalNames
-}
+// Generate is the ConsumerOptionsGenerator function
+func (g consumerOptionsGenerator) Generate(so *hevent.SubscriptionOptions) (pulsar.ConsumerOptions, error) {
+	// Check if has any topicFormatter => format all topics.
+	// check if dont has any option => setOptionValues an empty, otherwise keep its options
+	// set options and return.
+	var consumerOptions pulsar.ConsumerOptions
+	var formatter TopicFormatter = "%s"
 
-// findSubscriptionItem find subscription item in provided list.
-func (cg *defaultConsumerOptionsGenerator) findSubscriptionItem(subscriptionName string) *ConsumerOptionsItem {
-	for _, item := range cg.items {
-		if item.Channel.SubscriptionName == subscriptionName {
-			return &item
+	for _, v := range so.Extra() {
+		switch val := v.(type) {
+		case pulsar.ConsumerOptions:
+			consumerOptions = val
+		case TopicFormatter:
+			formatter = val
 		}
 	}
 
-	return nil
+	return g.setOptionValues(generateOptions{
+		formatter:       formatter,
+		consumerOptions: consumerOptions,
+		so:              so,
+	})
 }
 
-// DefaultChannelOptions returns new instance of the subscriptionItem with default values.
-// sample format can be "%s" or "persistent://public/{microservice_name}/%s"
-func DefaultChannelOptions(format, channel string) ConsumerOptionsItem {
-	return ConsumerOptionsItem{
-		TopicNamingFormat: format,
-		Channel:           hevent.NewChannelNames(channel, channel),
-		ConsumerOptions:   ConsumerOptions(fmt.Sprintf("%s-sub", channel), pulsar.Exclusive),
+// generateOptions is the options which we use to setOptionValues a consumerOptions.
+type generateOptions struct {
+	formatter       TopicFormatter
+	consumerOptions pulsar.ConsumerOptions
+	so              *hevent.SubscriptionOptions
+}
+
+// setOptionValues gets available options and set values on pulsar options.
+// If you do not set the subscription name, it will be same as the topic(channel) name.
+// If you do not set the subscription type, it will be "Exclusive".
+func (g consumerOptionsGenerator) setOptionValues(o generateOptions) (pulsar.ConsumerOptions, error) {
+	var consumerOptions = o.consumerOptions
+
+	if consumerOptions.SubscriptionName == "" {
+		if o.so.Channel == "" {
+			return consumerOptions, tracer.Trace(SubscriptionNameError)
+		}
+
+		consumerOptions.SubscriptionName = o.so.Channel
 	}
-}
 
-// ConsumerOptionsGeneratorByList get list of channels with their
-// consumer options and return a consumer generator.
-func NewConsumerOptionsGenerator(items []ConsumerOptionsItem) ConsumerOptionsGenerator {
-	g := &defaultConsumerOptionsGenerator{items: items}
-
-	return g.Generator
-}
-
-// ConsumerOptions returns new instance of pulsar consumer options.
-func ConsumerOptions(name string, subscriptionType pulsar.SubscriptionType) pulsar.ConsumerOptions {
-	return pulsar.ConsumerOptions{
-		SubscriptionName: name,
-		Type:             subscriptionType,
+	// Generate Topics
+	if consumerOptions.Topic == "" {
+		consumerOptions.Topic = o.formatter.Format(o.so.Channel)
 	}
+	if len(consumerOptions.Topics) == 0 {
+		consumerOptions.Topics = o.formatter.FormatList(o.so.Channels)
+	}
+	if consumerOptions.TopicsPattern != "" {
+		consumerOptions.TopicsPattern = o.formatter.Format(o.so.ChannelsPattern)
+	}
+
+	return consumerOptions, nil
+}
+
+// subscribeOptionsBuilder is a builder to build subscription options
+// according to the pulsar options.
+type SubscribeOptionsBuilder struct {
+	formatter TopicFormatter
+	o         pulsar.ConsumerOptions
+	so        *hevent.SubscriptionOptions
+}
+
+// Set gets options which we want to set frequently.
+func (b *SubscribeOptionsBuilder) Set(formatter, subName string, t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
+	return b.WithFormatter(formatter).WithSubscriptionName(subName).WithType(t)
+}
+
+// WithFormatter sets the formatter.
+func (b *SubscribeOptionsBuilder) WithFormatter(f string) *SubscribeOptionsBuilder {
+	b.formatter = TopicFormatter(f)
+	return b
+}
+
+// WithSubscriptionName sets the subscription name.
+func (b *SubscribeOptionsBuilder) WithSubscriptionName(sub string) *SubscribeOptionsBuilder {
+	b.o.SubscriptionName = sub
+	return b
+}
+
+// WithType sets the subscription type.
+func (b *SubscribeOptionsBuilder) WithType(t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
+	b.o.Type = t
+	return b
+}
+
+// WithOptions sets the pulsar consumer options.
+func (b *SubscribeOptionsBuilder) WithOptions(o pulsar.ConsumerOptions) *SubscribeOptionsBuilder {
+	b.o = o
+	return b
+}
+
+// Build builds the hexa-event subscriptionOptions.
+func (b *SubscribeOptionsBuilder) Build() *hevent.SubscriptionOptions {
+	b.so.WithExtra(b.formatter)
+	b.so.WithExtra(b.o)
+	return b.so
 }

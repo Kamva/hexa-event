@@ -8,17 +8,29 @@ import (
 )
 
 type (
-	// ChannelNames contains description about the channel names
-	// that provide to the consumerGenerator to generate consumer.
-	ChannelNames struct {
-		// Name of the subscription.subscriptionName group listeners
-		// of a the channel. see some message-brokers like pulsar to
-		// detect usage.
-		SubscriptionName string
+	// SubscriptionOptions contains options to subscribe to one or multiple channels.
+	SubscriptionOptions struct {
+		// Channel specify the channel name you will subscribe on.
+		// Either Channel,Channels or ChannelsPattern are required when subscribing.
+		Channel string
 
-		// If Names is empty, so event receiver checks the pattern
-		Names   []string
-		Pattern string
+		// Channels contains name of channels which we want to subscribe.
+		// Either Channel,Channels or ChannelsPattern are required when subscribing.
+		Channels []string
+
+		// ChannelsPattern is the pattern you will use to subscribe on all channels
+		// which match with this pattern.
+		// Either Channel,Channels or ChannelsPattern are required when subscribing.
+		ChannelsPattern string
+
+		// PayloadInstance is the instance of event payload.
+		PayloadInstance interface{}
+
+		// Handler is the event handler.
+		Handler EventHandler
+
+		// extra contains extra details for specific drivers(e.g for pulsar you can set extra consumer options here).
+		extra []interface{}
 	}
 
 	// EventHandler handle events.
@@ -26,14 +38,15 @@ type (
 
 	Receiver interface {
 		// Subscribe subscribe to the provided channel
-		Subscribe(subscriptionName string, channel string, payloadInstance interface{}, h EventHandler) error
-		// SubscribeMulti subscribe to multiple channel by either providing list of channels or pattern.
-		SubscribeMulti(chNames ChannelNames, payloadInstance interface{}, h EventHandler) error
+		Subscribe(channel string, payloadInstance interface{}, h EventHandler) error
+
+		// SubscribeWithOptions subscribe by options.
+		SubscribeWithOptions(*SubscriptionOptions) error
 
 		// Start starts receiving the messages.
 		Start() error
 
-		// Close close the connection
+		// Close closes the connection.
 		Close() error
 	}
 
@@ -74,32 +87,35 @@ type (
 	}
 )
 
-func (cn ChannelNames) Validate() error {
-	err := validation.ValidateStruct(&cn,
-		validation.Field(&cn.Names, validation.Required.When(cn.Pattern == ""), validation.Each(validation.Required)),
-		validation.Field(&cn.Pattern, validation.Required.When(len(cn.Names) == 0)),
+func (so *SubscriptionOptions) Validate() error {
+	err := validation.ValidateStruct(&so,
+		validation.Field(
+			&so.Channel,
+			validation.Required.When(len(so.Channels) == 0 && so.ChannelsPattern == ""),
+			validation.Each(validation.Required),
+		),
+		validation.Field(
+			&so.Channels,
+			validation.Required.When(so.Channel == "" && so.ChannelsPattern == ""),
+			validation.Each(validation.Required),
+		),
+		validation.Field(
+			&so.ChannelsPattern,
+			validation.Required.When(so.Channel == "" && len(so.Channels) == 0),
+		),
 	)
 	return tracer.Trace(err)
 }
 
-// NewChannelNames return new instance of the ChannelNames strut.
-func NewChannelNames(subscriptionName string, names ...string) ChannelNames {
-	c := ChannelNames{
-		SubscriptionName: subscriptionName,
-		Names:            names,
-	}
-
-	return c
+// WithExtra add Extra data to the subscription options.
+func (so *SubscriptionOptions) WithExtra(extra ...interface{}) *SubscriptionOptions {
+	so.extra = append(so.extra, extra...)
+	return so
 }
 
-// NewChannelPattern return new instance of ChanelNames that contains pattern.
-func NewChannelPattern(subscriptionName string, pattern string) ChannelNames {
-	c := ChannelNames{
-		SubscriptionName: subscriptionName,
-		Pattern:          pattern,
-	}
-
-	return c
+// Extra returns the extra data of the subscription options.
+func (so *SubscriptionOptions) Extra() []interface{} {
+	return so.extra
 }
 
 func (h MessageHeader) Validate() error {
@@ -115,6 +131,16 @@ func (e RawMessage) Validate() error {
 	)
 }
 
-var _ validation.Validatable = &ChannelNames{}
+// NewSubscriptionOptions returns new instance of the subscription options.
+func NewSubscriptionOptions(channel string, payloadInstance interface{}, handler EventHandler) *SubscriptionOptions {
+	return &SubscriptionOptions{
+		Channel:         channel,
+		PayloadInstance: payloadInstance,
+		Handler:         handler,
+	}
+}
+
+// Assertion
+var _ validation.Validatable = &SubscriptionOptions{}
 var _ validation.Validatable = &MessageHeader{}
 var _ validation.Validatable = &Message{}
