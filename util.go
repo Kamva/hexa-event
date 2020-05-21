@@ -39,4 +39,6 @@ func SubscribeMulti(r Receiver, options ...*SubscriptionOptions) error {
 			return err
 		}
 	}
+
+	return nil
 }
