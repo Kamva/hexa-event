@@ -149,11 +149,11 @@ func (b *SubscribeOptionsBuilder) Build() *hevent.SubscriptionOptions {
 
 // PulsarSubscribeOptions contains props which we can use to generate new SubscriptionOptions instance..
 type PulsarSubscribeOptions struct {
+	SubscriptionName string
+	Formatter        string
 	Channel          string
 	PayloadInstance  interface{}
 	Handler          hevent.EventHandler
-	Formatter        string
-	SubscriptionName string
 	Type             pulsar.SubscriptionType
 }
 
