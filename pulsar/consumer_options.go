@@ -111,7 +111,7 @@ type SubscribeOptionsBuilder struct {
 	so        *hevent.SubscriptionOptions
 }
 
-// NewSubscribeOptionsBuilder returns new instance of the SubscriptionOptionsBuilder.
+// NewSubscribeOptionsBuilder returns new instance of the SubscriptionOptionsBuilderW.
 func NewSubscribeOptionsBuilder(ch string, payloadInstance interface{}, h hevent.EventHandler) *SubscribeOptionsBuilder {
 	return &SubscribeOptionsBuilder{so: hevent.NewSubscriptionOptions(ch, payloadInstance, h)}
 }

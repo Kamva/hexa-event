@@ -9,7 +9,7 @@ import (
 type (
 	// Emitter is the interface to emit events
 	Emitter interface {
-		// Emit send event to the channel.
+		// Emit sends event to the channel.
 		// context can be nil.
 		// dont forget to validate the event here.
 		Emit(hexa.Context, *Event) (msgID string, err error)
