@@ -111,6 +111,11 @@ type SubscribeOptionsBuilder struct {
 	so        *hevent.SubscriptionOptions
 }
 
+// NewSubscribeOptionsBuilder returns new instance of the SubscriptionOptionsBuilder.
+func NewSubscribeOptionsBuilder(ch string, payloadInstance interface{}, h hevent.EventHandler) *SubscribeOptionsBuilder {
+	return &SubscribeOptionsBuilder{so: hevent.NewSubscriptionOptions(ch, payloadInstance, h)}
+}
+
 // Set gets options which we want to set frequently.
 func (b *SubscribeOptionsBuilder) Set(formatter, subName string, t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
 	return b.WithFormatter(formatter).WithSubscriptionName(subName).WithType(t)
