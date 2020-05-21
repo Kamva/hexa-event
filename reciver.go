@@ -88,20 +88,13 @@ type (
 )
 
 func (so *SubscriptionOptions) Validate() error {
-	err := validation.ValidateStruct(&so,
-		validation.Field(
-			&so.Channel,
-			validation.Required.When(len(so.Channels) == 0 && so.ChannelsPattern == ""),
-			validation.Each(validation.Required),
-		),
+	err := validation.ValidateStruct(so,
+		validation.Field(&so.Channel, validation.Required.When(len(so.Channels) == 0 && so.ChannelsPattern == "")),
+		validation.Field(&so.ChannelsPattern, validation.Required.When(so.Channel == "" && len(so.Channels) == 0)),
 		validation.Field(
 			&so.Channels,
 			validation.Required.When(so.Channel == "" && so.ChannelsPattern == ""),
 			validation.Each(validation.Required),
-		),
-		validation.Field(
-			&so.ChannelsPattern,
-			validation.Required.When(so.Channel == "" && len(so.Channels) == 0),
 		),
 	)
 	return tracer.Trace(err)

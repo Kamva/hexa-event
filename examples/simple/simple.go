@@ -80,6 +80,7 @@ func receive() {
 	}()
 
 	err = receiver.Subscribe(channelName, &HelloPayload{}, sayHello)
+	gutil.PanicErr(err)
 	err = receiver.Start()
 	gutil.PanicErr(err)
 }
