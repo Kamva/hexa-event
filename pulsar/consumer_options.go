@@ -116,11 +116,6 @@ func NewSubscribeOptionsBuilder(ch string, payloadInstance interface{}, h hevent
 	return &SubscribeOptionsBuilder{so: hevent.NewSubscriptionOptions(ch, payloadInstance, h)}
 }
 
-// Set gets options which we want to set frequently.
-func (b *SubscribeOptionsBuilder) Set(formatter, subName string, t pulsar.SubscriptionType) *SubscribeOptionsBuilder {
-	return b.WithFormatter(formatter).WithSubscriptionName(subName).WithType(t)
-}
-
 // WithFormatter sets the formatter.
 func (b *SubscribeOptionsBuilder) WithFormatter(f string) *SubscribeOptionsBuilder {
 	b.formatter = TopicFormatter(f)
@@ -150,4 +145,24 @@ func (b *SubscribeOptionsBuilder) Build() *hevent.SubscriptionOptions {
 	b.so.WithExtra(b.formatter)
 	b.so.WithExtra(b.o)
 	return b.so
+}
+
+// PulsarSubscribeOptions contains props which we can use to generate new SubscriptionOptions instance..
+type PulsarSubscribeOptions struct {
+	Channel          string
+	PayloadInstance  interface{}
+	Handler          hevent.EventHandler
+	Formatter        string
+	SubscriptionName string
+	Type             pulsar.SubscriptionType
+}
+
+// NewSubscriptionFromPulsarOptions returns new instance of the SubscriptionOptions from the
+// pulsar options.
+func NewSubscriptionFromPulsarOptions(o PulsarSubscribeOptions) *hevent.SubscriptionOptions {
+	return NewSubscribeOptionsBuilder(o.Channel, o.PayloadInstance, o.Handler).
+		WithFormatter(o.Formatter).
+		WithSubscriptionName(o.SubscriptionName).
+		WithType(o.Type).
+		Build()
 }
