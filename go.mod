@@ -3,8 +3,8 @@ module github.com/Kamva/hexa-event
 go 1.13
 
 require (
-	github.com/Kamva/gutil v0.0.0-20200410105054-7e8534aaefbe
-	github.com/Kamva/hexa v0.0.0-20200423181746-ed22ebd8dbcc
+	github.com/Kamva/gutil v0.0.0-20200613071917-167e96babaec
+	github.com/Kamva/hexa v0.0.0-20200801194001-ccd401effd71
 	github.com/Kamva/tracer v0.0.0-20200410105359-fd5aa0f880a8
 	github.com/apache/pulsar-client-go v0.0.0-20200214184451-fc390a6a37f3
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect

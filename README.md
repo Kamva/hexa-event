@@ -12,10 +12,11 @@ server error: ConsumerBusy: Exclusive consumer is already connected
 ```
  
 #### Proposal:
-- [x] Add `Extra []interface{}` option to the the `SubscriptionOptions` to get more features on each subscription relative to each driver. remove list of options in consumerGenerator(we can generate without a consumer generator or simple consumer generator) __[Accepted]__.
+- [ ] Remove `HandlerContext` as first param and get error as return param of `EventHandler`, if you got an error, so return negative signal and log the error, otherwise return positive signal to the event broker.
 
 #### Todo:
 - [x] Add support of protocol buffer to send events. 
+- [x] Add `Extra []interface{}` option to the the `SubscriptionOptions` to get more features on each subscription relative to each driver. remove list of options in consumerGenerator(we can generate without a consumer generator or simple consumer generator) __[Accepted]__.
 - [ ] Mock driver 
 - [ ] Write Tests.
 - [ ] Implement mock
