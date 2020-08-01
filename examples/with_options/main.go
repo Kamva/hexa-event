@@ -7,8 +7,8 @@ import (
 	"github.com/Kamva/hexa-event"
 	"github.com/Kamva/hexa-event/pulsar"
 	"github.com/Kamva/hexa/db/mgmadapter"
-	"github.com/Kamva/hexa/hexalogger"
 	"github.com/Kamva/hexa/hexatranslator"
+	"github.com/Kamva/hexa/hlog"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"time"
 )
@@ -22,7 +22,7 @@ const format = "%s"
 const channelName = "hexa-example"
 
 var t = hexatranslator.NewEmptyDriver()
-var l = hexalogger.NewPrinterDriver()
+var l = hlog.NewPrinterDriver()
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
 var ctxExporterImporter = hexa.NewCtxExporterImporter(userExporter, l, t)
 
@@ -40,7 +40,7 @@ func send() {
 	defer client.Close()
 
 	var t = hexatranslator.NewEmptyDriver()
-	var l = hexalogger.NewPrinterDriver()
+	var l = hlog.NewPrinterDriver()
 
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
 		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),
