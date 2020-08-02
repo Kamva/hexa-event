@@ -3,8 +3,8 @@ package hexapulsar
 import (
 	"errors"
 	"fmt"
-	hevent "github.com/Kamva/hexa-event"
-	"github.com/Kamva/tracer"
+	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
 )
 

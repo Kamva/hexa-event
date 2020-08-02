@@ -2,8 +2,8 @@ package hevent
 
 import (
 	"context"
-	"github.com/Kamva/hexa"
-	"github.com/Kamva/tracer"
+	"github.com/kamva/hexa"
+	"github.com/kamva/tracer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 

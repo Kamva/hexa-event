@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/Kamva/hexa"
-	hevent "github.com/Kamva/hexa-event"
-	"github.com/Kamva/tracer"
+	"github.com/kamva/hexa"
+	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/tracer"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"sync"
 )

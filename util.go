@@ -1,8 +1,8 @@
 package hevent
 
 import (
-	"github.com/Kamva/hexa"
-	"github.com/Kamva/tracer"
+	"github.com/kamva/hexa"
+	"github.com/kamva/tracer"
 )
 
 // EventToRawMessage converts Event instance to Message.

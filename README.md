@@ -2,7 +2,7 @@
 
 #### Install
 ```
-go get github.com/Kamva/hexa-event
+go get github.com/kamva/hexa-event
 ```
 
 __Known errors :__

@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/Kamva/gutil"
-	"github.com/Kamva/hexa"
-	"github.com/Kamva/hexa-event"
-	"github.com/Kamva/hexa-event/pulsar"
-	"github.com/Kamva/hexa/db/mgmadapter"
-	"github.com/Kamva/hexa/hexatranslator"
-	"github.com/Kamva/hexa/hlog"
+	"github.com/kamva/gutil"
+	"github.com/kamva/hexa"
+	"github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/pulsar"
+	"github.com/kamva/hexa/db/mgmadapter"
+	"github.com/kamva/hexa/hexatranslator"
+	"github.com/kamva/hexa/hlog"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"time"
 )

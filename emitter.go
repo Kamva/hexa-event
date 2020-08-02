@@ -2,7 +2,7 @@ package hevent
 
 import (
 	"context"
-	"github.com/Kamva/hexa"
+	"github.com/kamva/hexa"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 

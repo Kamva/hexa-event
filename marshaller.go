@@ -3,8 +3,8 @@ package hevent
 import (
 	"encoding/json"
 	"errors"
-	"github.com/Kamva/gutil"
-	"github.com/Kamva/tracer"
+	"github.com/kamva/gutil"
+	"github.com/kamva/tracer"
 	"github.com/golang/protobuf/proto"
 )
 
