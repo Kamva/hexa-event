@@ -90,7 +90,7 @@ func NewMarshallerByName(name string) Marshaller {
 func UnmarshalPayloadByInstance(payload []byte, marshallerName string, payloadInstance interface{}) (interface{}, error) {
 	marshaller := NewMarshallerByName(marshallerName)
 
-	v, err := gutil.NewInstanceByValue(payloadInstance)
+	v, err := gutil.ValuePtr(payloadInstance)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
