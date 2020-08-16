@@ -154,6 +154,8 @@ github.com/kamva/gutil v0.0.0-20200807081138-daab9af8a9f1 h1:1/PVVdg28ICXB4j+3Ph
 github.com/kamva/gutil v0.0.0-20200807081138-daab9af8a9f1/go.mod h1:isEo5NPYgY0mNFbOrCbbDVTe7Cd5VujoEt1cKbG2oGg=
 github.com/kamva/hexa v0.0.0-20200802195555-bef52a2e7393 h1:4+ME9qQlZuy6dCOvmINvDGP2V11kdj7E/SBliCo1cXQ=
 github.com/kamva/hexa v0.0.0-20200802195555-bef52a2e7393/go.mod h1:AnYhdxq4Gr49oFv/vpKplvPfdjzn+63M3WBVfLzRsl4=
+github.com/kamva/hexa v0.0.0-20200816035644-06b7866f55fb h1:Tf5fTLw1urWGW0uYFomcCAuIiBuGjtL0of/jICaFpJM=
+github.com/kamva/hexa v0.0.0-20200816035644-06b7866f55fb/go.mod h1:AnYhdxq4Gr49oFv/vpKplvPfdjzn+63M3WBVfLzRsl4=
 github.com/kamva/mgm-relation v0.0.0-20200802193925-a960eb9564ab h1:ffF2dF/UGVNESkIhqowyG95IJozWycKD6OyROuq341c=
 github.com/kamva/mgm-relation v0.0.0-20200802193925-a960eb9564ab/go.mod h1:D7cPWD6YgVfVQ7Q9x0xEABbcz2tuSjYOnuMr73YVy/M=
 github.com/kamva/tracer v0.0.0-20200802193105-6c0f308b9655 h1:znkvBi/J3pUEBcZNTwjmvPZLmmYIxdrypryvOW6DlA8=
