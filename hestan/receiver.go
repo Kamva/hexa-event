@@ -123,7 +123,7 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 
 func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler {
 	return func(msg *stan.Msg) {
-		hlog.WithFields("subject", msg.Subject, "msg", string(msg.Data)).Debug("received message from nats driver")
+		hlog.WithFields("subject", msg.Subject, "msg", string(msg.Data)).Debug("received event")
 		ctx, m, err := r.extractMessage(msg.Data, p)
 		h(newHandlerCtx(msg), ctx, m, tracer.Trace(err))
 	}
