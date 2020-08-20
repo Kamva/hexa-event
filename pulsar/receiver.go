@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/tracer"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"sync"
 )
 
@@ -112,7 +113,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 		err = tracer.Trace(err)
 		return
 	}
-	m, err = hevent.RawMessageToMessage(&rawMsg, payloadInstance)
+	m, err = helper.RawMessageToMessage(&rawMsg, payloadInstance)
 	return
 }
 

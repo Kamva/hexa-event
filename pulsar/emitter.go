@@ -9,10 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	"github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/tracer"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"sync"
 	"time"
 )
@@ -40,20 +41,12 @@ type (
 	}
 )
 
-func (e *emitter) ctx(c context.Context) context.Context {
-	if c == nil {
-		c = context.Background()
-	}
-
-	return c
-}
-
 func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
-	return e.EmitWithCtx(e.ctx(nil), ctx, event)
+	return e.EmitWithCtx(helper.Ctx(nil), ctx, event)
 }
 
 func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent.Event) (string, error) {
-	c = e.ctx(c)
+	c = helper.Ctx(c)
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -77,7 +70,7 @@ func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent
 }
 
 func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
-	msg, err := hevent.EventToRawMessage(ctx, event, e.ctxExporter, e.marshaller)
+	msg, err := helper.EventToRawMessage(ctx, event, e.ctxExporter, e.marshaller)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}

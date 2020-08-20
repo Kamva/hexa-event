@@ -2,9 +2,9 @@ package hevent
 
 import (
 	"context"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type (
@@ -47,6 +47,8 @@ type (
 		Start() error
 
 		// Close closes the connection.
+		// You can provide options for some drivers. e.g if you are using the nats-streaming driver, you can
+		// say here that you want to close and unsubscribe or just close.
 		Close() error
 	}
 
@@ -61,13 +63,16 @@ type (
 
 	// MessageHeader is header of the message.
 	MessageHeader struct {
-		CorrelationID string   `json:"correlation_id"` // required
-		ReplyChannel  string   `json:"reply_channel"`  // optional (use if need to reply the response)
-		Ctx           hexa.Map `json:"ctx"`            // extract context as map
+		CorrelationID string `json:"correlation_id"` // required
+		ReplyChannel  string `json:"reply_channel"`  // optional (use if need to reply the response)
+		// Deprecated: I think we don't need to the Ctx field. it contains
+		// user,translator,... but we don't need to it. maybe just local of
+		// user can help in this context.
+		Ctx hexa.Map `json:"ctx"` // extract context as map
 	}
 
-	// RawMssage is the message sent by emitter,
-	// we will convert RawMssage to message and then
+	// RawMessage is the message sent by emitter,
+	// we will convert RawMessage to message and then
 	// pass it to the event handler.
 	RawMessage struct {
 		MessageHeader `json:"header"`
@@ -121,6 +126,7 @@ func (h MessageHeader) Validate() error {
 func (e RawMessage) Validate() error {
 	return validation.ValidateStruct(&e,
 		validation.Field(&e.MessageHeader, validation.Required),
+		validation.Field(&e.Marshaller, validation.Required),
 	)
 }
 

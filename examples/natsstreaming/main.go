@@ -1,0 +1,151 @@
+package main
+
+import (
+	"github.com/kamva/gutil"
+	"github.com/kamva/hexa"
+	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/hestan"
+	"github.com/kamva/hexa/db/mgmadapter"
+	"github.com/kamva/hexa/hexatranslator"
+	"github.com/kamva/hexa/hlog"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/stan.go"
+	"os"
+	"os/signal"
+)
+
+const (
+	clusterID  = "test-cluster"
+	clientID   = "stan-pub"
+	clientName = "NATS Streaming Example Publisher"
+	URL        = stan.DefaultNatsURL
+)
+
+var t = hexatranslator.NewEmptyDriver()
+var l = hlog.NewPrinterDriver()
+var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
+var cei = hexa.NewCtxExporterImporter(userExporter, l, t)
+
+// Some other data
+var (
+	correlationID  = "my-correlation-id"
+	channel        = "simple-channel"
+	anotherChannel = "simple-channel-2"
+	replyChannel   = "simple-channel-reply"
+	msg            = "Hello from nats streaming broker :)"
+)
+
+type HelloPayload struct {
+	Hello string `json:"hello"`
+}
+
+func main() {
+	emitter, receiver := bootstrap()
+	ctx := hexa.NewCtx(nil, correlationID, "en", hexa.NewGuest(), l, t)
+	hlog.Info("connected...")
+
+	receive(receiver)
+	hlog.Info("listening to receive messages...")
+
+	emit(ctx, emitter)
+	hlog.Info("emitted...")
+
+	waitToClose(emitter, receiver)
+}
+
+func bootstrap() (hevent.Emitter, hevent.Receiver) {
+	nc, sc := connect()
+
+	emitter, err := hestan.NewEmitter(hestan.EmitterOptions{
+		NatsCon:             nc,
+		StreamingCon:        sc,
+		CtxExporterImporter: cei,
+		Marshaller:          hevent.NewJsonMarshaller(),
+	})
+	gutil.PanicErr(err)
+
+	receiver, err := hestan.NewReceiver(hestan.ReceiverOptions{
+		NatsCon:             nc,
+		StreamingCon:        sc,
+		CtxExporterImporter: cei,
+	})
+	gutil.PanicErr(err)
+
+	return emitter, receiver
+}
+
+func connect() (*nats.Conn, stan.Conn) {
+	// Connect Options.
+	opts := []nats.Option{nats.Name(clientName)}
+
+	// Connect to NATS
+	nc, err := nats.Connect(URL, opts...)
+	if err != nil {
+		hlog.Error(err)
+	}
+
+	sc, err := stan.Connect(clusterID, clientID, stan.NatsConn(nc))
+	if err != nil {
+		hlog.Error("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, URL)
+	}
+
+	return nc, sc
+}
+
+func emit(ctx hexa.Context, emitter hevent.Emitter) {
+	_, err := emitter.Emit(ctx, &hevent.Event{
+		Key:          "my-key",
+		Channel:      channel,
+		ReplyChannel: replyChannel,
+		Payload:      &HelloPayload{Hello: msg},
+	})
+	gutil.PanicErr(err)
+
+	// Emit another message
+	_, err = emitter.Emit(ctx, &hevent.Event{
+		Key:          "my-key",
+		Channel:      anotherChannel,
+		ReplyChannel: replyChannel,
+		Payload:      &HelloPayload{Hello: "another message :)"},
+	})
+	gutil.PanicErr(err)
+}
+
+func receive(receiver hevent.Receiver) {
+	gutil.PanicErr(receiver.Subscribe(channel, &HelloPayload{}, handler))
+	o := hestan.SubscriptionOptions{
+		Subject:         anotherChannel,
+		Group:           "group-1",
+		Durable:         "my-durable",
+		Position:        stan.DeliverAllAvailable(),
+		Handler:         handler,
+		PayloadInstance: &HelloPayload{},
+	}
+	gutil.PanicErr(receiver.SubscribeWithOptions(hestan.NewSubscriptionOptions(o)))
+}
+
+func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) {
+	gutil.PanicErr(err)
+	hlog.Info("correlation_id", ctx.CorrelationID())
+	hlog.Info("reply_channel", msg.ReplyChannel)
+	hlog.Info("payload", msg.Payload.(*HelloPayload).Hello)
+}
+
+func waitToClose(emitter hevent.Emitter, receiver hevent.Receiver) () {
+	// Wait for a SIGINT (perhaps triggered by user with CTRL-C)
+	// Run cleanup when signal is received
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan bool)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		for range signalChan {
+			hlog.Info("\nReceived an interrupt, unsubscribing and closing connection...\n\n")
+			emitter.Close()
+			receiver.Close()
+			cleanupDone <- true
+		}
+	}()
+	<-cleanupDone
+}
+
+var _ hevent.EventHandler = handler

@@ -17,7 +17,8 @@ server error: ConsumerBusy: Exclusive consumer is already connected
 #### Todo:
 - [x] Add support of protocol buffer to send events. 
 - [x] Add `Extra []interface{}` option to the the `SubscriptionOptions` to get more features on each subscription relative to each driver. remove list of options in consumerGenerator(we can generate without a consumer generator or simple consumer generator) __[Accepted]__.
-- [ ] Mock driver 
+- [x] Implement nats-streaming driver 
+- [ ] Implement Mock driver 
 - [ ] Write Tests.
 - [ ] Implement mock
 - [ ] Add badges to readme.
