@@ -111,7 +111,7 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 	if o.Group != "" {
 		_, err = r.sc.QueueSubscribe(o.Subject, o.Group, h, opts...)
 	} else {
-		hlog.Debug("subscribe to",o.Subject)
+		hlog.Debug("subscribe to", o.Subject)
 		_, err = r.sc.Subscribe(o.Subject, h, opts...)
 	}
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 
 func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler {
 	return func(msg *stan.Msg) {
-		hlog.Debug("received message...")
+		hlog.WithFields("subject", msg.Subject, "msg", string(msg.Data)).Debug("received message from nats driver")
 		ctx, m, err := r.extractMessage(msg.Data, p)
 		h(newHandlerCtx(msg), ctx, m, tracer.Trace(err))
 	}
