@@ -107,11 +107,16 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 		opts = append(opts, stan.DurableName(o.Durable))
 	}
 
+	hlog.WithFields(gutil.MapToKeyValue(hexa.Map{
+		"subject": o.Subject,
+		"group":   o.Group,
+		"durable": o.Durable,
+	})).Debug("subscribing to the subject")
+
 	var err error
 	if o.Group != "" {
 		_, err = r.sc.QueueSubscribe(o.Subject, o.Group, h, opts...)
 	} else {
-		hlog.Debug("subscribe to", o.Subject)
 		_, err = r.sc.Subscribe(o.Subject, h, opts...)
 	}
 	if err != nil {
