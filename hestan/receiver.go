@@ -15,6 +15,8 @@ import (
 	"github.com/kamva/tracer"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/stan.go"
+	"os"
+	"syscall"
 )
 
 type handlerContext struct {
@@ -158,8 +160,9 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 }
 
 func (r *receiver) Start() error {
-	// We don't need to start anything.
-	return nil
+	return gutil.Wait(func(s os.Signal) error {
+		return nil
+	},syscall.SIGINT, syscall.SIGTERM)
 }
 
 func (r *receiver) Close() error {
