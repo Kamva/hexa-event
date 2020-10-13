@@ -111,7 +111,7 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 		"subject": o.Subject,
 		"group":   o.Group,
 		"durable": o.Durable,
-	})).Debug("subscribing to the subject")
+	})...).Debug("subscribing to the subject")
 
 	var err error
 	if o.Group != "" {

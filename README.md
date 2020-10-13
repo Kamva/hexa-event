@@ -12,7 +12,9 @@ server error: ConsumerBusy: Exclusive consumer is already connected
 ```
  
 #### Proposal:
-- [ ] Remove `HandlerContext` as first param and get error as return param of `EventHandler`, if you got an error, so return negative signal and log the error, otherwise return positive signal to the event broker.
+- [ ] Remove the `HandlerContext` as first param and get error as return param of `EventHandler`, if you got an error, so return negative signal and log the error, otherwise return positive signal to the event broker.
+- [ ] Remove the `err` param as lat para of each handler, if occured error, so just log it and send nack, because we should not get any error in our app, if we get error on an event,
+ so we don't need to call to the handler, we need to fix it.
 
 #### Todo:
 - [x] Add support of protocol buffer to send events. 
