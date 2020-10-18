@@ -3,6 +3,7 @@ package hestan
 import (
 	"fmt"
 	"github.com/kamva/gutil"
+	"github.com/nats-io/stan.go"
 	"time"
 )
 
@@ -14,4 +15,11 @@ func UniqueClientID(prefix string) string {
 	}
 
 	return fmt.Sprintf("%s%s", prefix, gutil.RandWithDate(time.Now(), 6))
+}
+
+func ManualAckOption(waitDuration time.Duration) []stan.SubscriptionOption {
+	return []stan.SubscriptionOption{
+		stan.SetManualAckMode(),
+		stan.AckWait(time.Second * waitDuration),
+	}
 }

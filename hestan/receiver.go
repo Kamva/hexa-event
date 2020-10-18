@@ -162,7 +162,7 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 func (r *receiver) Start() error {
 	return gutil.Wait(func(s os.Signal) error {
 		return nil
-	},syscall.SIGINT, syscall.SIGTERM)
+	}, syscall.SIGINT, syscall.SIGTERM)
 }
 
 func (r *receiver) Close() error {
