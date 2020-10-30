@@ -17,6 +17,7 @@ func UniqueClientID(prefix string) string {
 	return fmt.Sprintf("%s%s", prefix, gutil.RandWithDate(time.Now(), 6))
 }
 
+// ManualAckOption returns option which set subscription on manual ack with ack wait value.
 func ManualAckOption(waitDuration time.Duration) []stan.SubscriptionOption {
 	return []stan.SubscriptionOption{
 		stan.SetManualAckMode(),
