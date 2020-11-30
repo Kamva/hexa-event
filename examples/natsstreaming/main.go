@@ -22,7 +22,7 @@ const (
 )
 
 var t = hexatranslator.NewEmptyDriver()
-var l = hlog.NewPrinterDriver()
+var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
 var cei = hexa.NewCtxExporterImporter(userExporter, l, t)
 

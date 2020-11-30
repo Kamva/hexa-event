@@ -22,7 +22,7 @@ const format = "%s"
 const channelName = "hexa-example"
 
 var t = hexatranslator.NewEmptyDriver()
-var l = hlog.NewPrinterDriver()
+var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
 var ctxExporterImporter = hexa.NewCtxExporterImporter(userExporter, l, t)
 
@@ -40,7 +40,7 @@ func send() {
 	defer client.Close()
 
 	var t = hexatranslator.NewEmptyDriver()
-	var l = hlog.NewPrinterDriver()
+	var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
 		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),

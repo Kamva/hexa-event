@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	"github.com/kamva/hexa-event"
@@ -9,7 +10,6 @@ import (
 	"github.com/kamva/hexa/db/mgmadapter"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"time"
 )
 
@@ -19,9 +19,10 @@ type HelloPayload struct {
 
 const clientURL = "pulsar://localhost:6650"
 const format = "%s"
-const channelName="hexa-example"
+const channelName = "hexa-example"
+
 var t = hexatranslator.NewEmptyDriver()
-var l = hlog.NewPrinterDriver()
+var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
 var ctxExporterImporter = hexa.NewCtxExporterImporter(userExporter, l, t)
 
@@ -39,7 +40,7 @@ func send() {
 	defer client.Close()
 
 	var t = hexatranslator.NewEmptyDriver()
-	var l = hlog.NewPrinterDriver()
+	var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
 		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),
