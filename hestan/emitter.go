@@ -54,7 +54,7 @@ func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent
 		return "", tracer.Trace(err)
 	}
 
-	hlog.WithFields("channel", event.Channel, "payload", string(payload)).Debug("emit event")
+	hlog.With(hlog.String("channel", event.Channel), hlog.String("payload", string(payload))).Debug("emit event")
 	return "", tracer.Trace(e.sc.Publish(event.Channel, payload))
 }
 

@@ -47,12 +47,12 @@ func (o ReceiverOptions) Validate() error {
 func (h *handlerContext) Ack() {
 	err := h.msg.Ack()
 	if err != nil {
-		hlog.WithFields(gutil.MapToKeyValue(hexa.Map{
-			"event_driver": "nats-streaming",
-			"subject":      h.msg.Subject,
-			"msg_string":   h.msg.String(),
-			"error":        err.Error(),
-		})).Error("error in sending ack for msg")
+		hlog.Error("error in sending ack for msg",
+			hlog.String("event_driver", "nats-streaming"),
+			hlog.String("subject", h.msg.Subject),
+			hlog.String("msg_string", h.msg.String()),
+			hlog.String("error", err.Error()),
+		)
 	}
 }
 
@@ -109,11 +109,11 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 		opts = append(opts, stan.DurableName(o.Durable))
 	}
 
-	hlog.WithFields(gutil.MapToKeyValue(hexa.Map{
-		"subject": o.Subject,
-		"group":   o.Group,
-		"durable": o.Durable,
-	})...).Debug("subscribing to the subject")
+	hlog.Debug("subscribing to the subject",
+		hlog.String("subject", o.Subject),
+		hlog.String("group", o.Group),
+		hlog.String("durable", o.Durable),
+	)
 
 	var err error
 	if o.Group != "" {
@@ -130,7 +130,7 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 
 func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler {
 	return func(msg *stan.Msg) {
-		hlog.WithFields("subject", msg.Subject, "msg", string(msg.Data)).Debug("received event")
+		hlog.Debug("received event", hlog.String("subject", msg.Subject), hlog.String("msg", string(msg.Data)))
 		ctx, m, err := r.extractMessage(msg.Data, p)
 		h(newHandlerCtx(msg), ctx, m, tracer.Trace(err))
 	}

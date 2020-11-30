@@ -81,12 +81,12 @@ func connect() (*nats.Conn, stan.Conn) {
 	// Connect to NATS
 	nc, err := nats.Connect(URL, opts...)
 	if err != nil {
-		hlog.Error(err)
+		hlog.Error("error for connection to NATS", hlog.Err(err))
 	}
 
 	sc, err := stan.Connect(clusterID, clientID, stan.NatsConn(nc))
 	if err != nil {
-		hlog.Error("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, URL)
+		hlog.Error("Can't connect to NATS Streaming", hlog.Err(err), hlog.String("url", URL))
 	}
 
 	return nc, sc
@@ -126,9 +126,9 @@ func receive(receiver hevent.Receiver) {
 
 func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) {
 	gutil.PanicErr(err)
-	hlog.Info("correlation_id", ctx.CorrelationID())
-	hlog.Info("reply_channel", msg.ReplyChannel)
-	hlog.Info("payload", msg.Payload.(*HelloPayload).Hello)
+	hlog.Info("correlation_id", hlog.String("correlation_id", ctx.CorrelationID()))
+	hlog.Info("reply_channel", hlog.String("reply_channel", msg.ReplyChannel))
+	hlog.Info("payload", hlog.String("payload", msg.Payload.(*HelloPayload).Hello))
 }
 
 func waitToClose(emitter hevent.Emitter, receiver hevent.Receiver) () {

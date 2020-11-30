@@ -7,7 +7,7 @@ require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.1.0
 	github.com/golang/protobuf v1.4.2
 	github.com/kamva/gutil v0.0.0-20201013215200-e119670a6eda
-	github.com/kamva/hexa v0.0.0-20201115123231-795996ab3a1a
+	github.com/kamva/hexa v0.0.0-20201130114658-d62fdb8a5040
 	github.com/kamva/tracer v0.0.0-20201115122932-ea39052d56cd
 	github.com/nats-io/nats-streaming-server v0.18.0 // indirect
 	github.com/nats-io/nats.go v1.10.0
