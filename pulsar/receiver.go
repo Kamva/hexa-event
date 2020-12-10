@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
+
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/tracer"
-	"sync"
 )
 
 type (
@@ -22,7 +23,7 @@ type (
 		wg                       *sync.WaitGroup
 		done                     chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
 
-		ctxExporterImporter hexa.ContextExporterImporter
+		p hexa.ContextPropagator
 	}
 
 	// handlerContext implements the HandlerContext interface.
@@ -108,12 +109,18 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 		return
 	}
 	// extract Context:
-	ctx, err = r.ctxExporterImporter.Import(rawMsg.MessageHeader.Ctx)
+	c := context.Background()
+	c, err = r.p.Inject(rawMsg.Headers, c)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
 	}
+	ctx = hexa.MustNewContextFromRawContext(c)
 	m, err = helper.RawMessageToMessage(&rawMsg, payloadInstance)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
@@ -142,13 +149,13 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 }
 
 // NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
-func NewReceiver(client pulsar.Client, cei hexa.ContextExporterImporter) (hevent.Receiver, error) {
+func NewReceiver(client pulsar.Client, p hexa.ContextPropagator) (hevent.Receiver, error) {
 	if client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &receiver{
-		ctxExporterImporter:      cei,
+		p:                        p,
 		client:                   client,
 		consumerOptionsGenerator: consumerOptionsGenerator{},
 		consumers:                make([]pulsar.Consumer, 0),

@@ -6,30 +6,37 @@ import (
 	"github.com/kamva/tracer"
 )
 
+const (
+	CorrelationIdHeaderKey = "_correlation_id"
+	ReplyChannelHeaderKey  = "_reply_channel"
+)
+
 // EventToRawMessage converts Event instance to Message.
-func EventToRawMessage(ctx hexa.Context, event *hevent.Event, ce hexa.ContextExporterImporter, marshaller hevent.Marshaller) (
+func EventToRawMessage(ctx hexa.Context, event *hevent.Event, p hexa.ContextPropagator, e hevent.Encoder) (
 	*hevent.RawMessage, error) {
-	payload, err := marshaller.Marshal(event.Payload)
-	exportedCtx, err := ce.Export(ctx)
+	payload, err := e.Encode(event.Payload)
+
+	headers, err := p.Extract(ctx)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
+
+	headers[CorrelationIdHeaderKey] = []byte(ctx.CorrelationID())
+	headers[ReplyChannelHeaderKey] = []byte(event.ReplyChannel)
+
 	return &hevent.RawMessage{
-		MessageHeader: hevent.MessageHeader{
-			CorrelationID: ctx.CorrelationID(),
-			ReplyChannel:  event.ReplyChannel,
-			Ctx:           exportedCtx,
-		},
-		Marshaller: marshaller.Name(),
+		Headers:    headers,
+		Marshaller: e.Name(),
 		Payload:    payload,
 	}, err
 }
 
 func RawMessageToMessage(rawMsg *hevent.RawMessage, payloadInstance interface{}) (hevent.Message, error) {
-	v, err := hevent.UnmarshalPayloadByInstance(rawMsg.Payload, rawMsg.Marshaller, payloadInstance)
+	p, err := hevent.DecodePayloadByInstance(rawMsg.Payload, rawMsg.Marshaller, payloadInstance)
 
 	return hevent.Message{
-		MessageHeader: rawMsg.MessageHeader,
-		Payload:       v,
-	}, err
+		CorrelationId: string(rawMsg.Headers[CorrelationIdHeaderKey]),
+		ReplyChannel:  string(rawMsg.Headers[ReplyChannelHeaderKey]),
+		Payload:       p,
+	}, tracer.Trace(err)
 }

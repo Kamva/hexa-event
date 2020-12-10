@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  nats-streaming-console:
+    image: mozgoo/nats-streaming-console:latest
+    environment:
+      - STAN_URL=nats://nats-streaming:4222
+      - STAN_MONITOR_URL=http://nats-streaming:8222
+    ports:
+      - 8282:8282
+    networks:
+      - nats-net
+
+  nats-streaming:
+    image: nats-streaming
+    ports:
+      - 4222:4222
+      - 8222:8222
+    networks:
+      - nats-net
+
+networks:
+  nats-net:

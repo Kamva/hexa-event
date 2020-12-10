@@ -5,25 +5,25 @@
 package hexapulsar
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	"github.com/kamva/hexa-event"
 	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/tracer"
-	"sync"
-	"time"
 )
 
 type (
 	// EmitterOptions contains options that can provide on create emitter.
 	EmitterOptions struct {
 		ProducerGenerator ProducerGenerator
-		CtxExporter       hexa.ContextExporterImporter
-		Marshaller        hevent.Marshaller
+		ContextPropagator hexa.ContextPropagator
+		Marshaller        hevent.Encoder
 	}
 
 	// ProducerGenerator setOptionValues new producer
@@ -34,19 +34,15 @@ type (
 		client     pulsar.Client
 		pg         ProducerGenerator
 		producers  map[string]pulsar.Producer
-		marshaller hevent.Marshaller
+		marshaller hevent.Encoder
 		l          *sync.RWMutex
 
-		ctxExporter hexa.ContextExporterImporter
+		p          hexa.ContextPropagator
 	}
 )
 
 func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
-	return e.EmitWithCtx(helper.Ctx(nil), ctx, event)
-}
 
-func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent.Event) (string, error) {
-	c = helper.Ctx(c)
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -61,7 +57,7 @@ func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent
 		return "", tracer.Trace(err)
 	}
 
-	id, err := p.Send(c, msg)
+	id, err := p.Send(ctx, msg)
 	if err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -70,7 +66,7 @@ func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent
 }
 
 func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
-	msg, err := helper.EventToRawMessage(ctx, event, e.ctxExporter, e.marshaller)
+	msg, err := helper.EventToRawMessage(ctx, event, e.p, e.marshaller)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -138,12 +134,12 @@ func NewEmitter(client pulsar.Client, options EmitterOptions) (hevent.Emitter, e
 	}
 
 	return &emitter{
-		client:      client,
-		pg:          options.ProducerGenerator,
-		producers:   make(map[string]pulsar.Producer),
-		marshaller:  options.Marshaller,
-		l:           &sync.RWMutex{},
-		ctxExporter: options.CtxExporter,
+		client:     client,
+		pg:         options.ProducerGenerator,
+		producers:  make(map[string]pulsar.Producer),
+		marshaller: options.Marshaller,
+		l:          &sync.RWMutex{},
+		p:          options.ContextPropagator,
 	}, nil
 }
 

@@ -3,8 +3,8 @@
 package hestan
 
 import (
-	"context"
 	"encoding/json"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
@@ -16,35 +16,31 @@ import (
 )
 
 type EmitterOptions struct {
-	NatsCon             *nats.Conn
-	StreamingCon        stan.Conn
-	CtxExporterImporter hexa.ContextExporterImporter
-	Marshaller          hevent.Marshaller
+	NatsCon           *nats.Conn
+	StreamingCon      stan.Conn
+	ContextPropagator hexa.ContextPropagator
+	Marshaller        hevent.Encoder
 }
 
 func (o EmitterOptions) Validate() error {
 	return validation.ValidateStruct(&o,
 		validation.Field(&o.NatsCon, validation.Required),
 		validation.Field(&o.StreamingCon, validation.Required),
-		validation.Field(&o.CtxExporterImporter, validation.Required),
+		validation.Field(&o.ContextPropagator, validation.Required),
 		validation.Field(&o.Marshaller, validation.Required),
 	)
 }
 
 type emitter struct {
-	nc         *nats.Conn
-	sc         stan.Conn
-	cei        hexa.ContextExporterImporter
-	marshaller hevent.Marshaller
+	nc      *nats.Conn
+	sc      stan.Conn
+	p       hexa.ContextPropagator
+	encoder hevent.Encoder
 }
 
-func (e *emitter) Emit(c hexa.Context, event *hevent.Event) (msgID string, err error) {
-	return e.EmitWithCtx(helper.Ctx(nil), c, event)
-}
-
-func (e *emitter) EmitWithCtx(c context.Context, ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
+func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
 	// TODO: implement publish async option also.
-	raw, err := helper.EventToRawMessage(ctx, event, e.cei, e.marshaller)
+	raw, err := helper.EventToRawMessage(ctx, event, e.p, e.encoder)
 	if err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -66,10 +62,10 @@ func (e *emitter) Close() error {
 // NewEmitter returns new emitter with tha nats-streaming driver.
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 	return &emitter{
-		nc:         o.NatsCon,
-		sc:         o.StreamingCon,
-		cei:        o.CtxExporterImporter,
-		marshaller: o.Marshaller,
+		nc:      o.NatsCon,
+		sc:      o.StreamingCon,
+		p:       o.ContextPropagator,
+		encoder: o.Marshaller,
 	}, o.Validate()
 }
 

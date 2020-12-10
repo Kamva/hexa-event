@@ -6,6 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"syscall"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
@@ -15,8 +18,6 @@ import (
 	"github.com/kamva/tracer"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/stan.go"
-	"os"
-	"syscall"
 )
 
 type handlerContext struct {
@@ -25,20 +26,20 @@ type handlerContext struct {
 }
 
 type ReceiverOptions struct {
-	NatsCon             *nats.Conn
-	StreamingCon        stan.Conn
-	CtxExporterImporter hexa.ContextExporterImporter
+	NatsCon           *nats.Conn
+	StreamingCon      stan.Conn
+	ContextPropagator hexa.ContextPropagator
 }
 
 type receiver struct {
-	cei hexa.ContextExporterImporter
-	nc  *nats.Conn
-	sc  stan.Conn
+	p  hexa.ContextPropagator
+	nc *nats.Conn
+	sc stan.Conn
 }
 
 func (o ReceiverOptions) Validate() error {
 	return validation.ValidateStruct(&o,
-		validation.Field(&o.CtxExporterImporter, validation.Required),
+		validation.Field(&o.ContextPropagator, validation.Required),
 		validation.Field(&o.NatsCon, validation.Required),
 		validation.Field(&o.StreamingCon, validation.Required),
 	)
@@ -51,7 +52,7 @@ func (h *handlerContext) Ack() {
 			hlog.String("event_driver", "nats-streaming"),
 			hlog.String("subject", h.msg.Subject),
 			hlog.String("msg_string", h.msg.String()),
-			hlog.String("error", err.Error()),
+			hlog.Err(err),
 		)
 	}
 }
@@ -150,11 +151,13 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 		return
 	}
 	// extract Context:
-	ctx, err = r.cei.Import(rawMsg.MessageHeader.Ctx)
+	c := context.Background()
+	c, err = r.p.Inject(rawMsg.Headers, context.Background())
 	if err != nil {
 		err = tracer.Trace(err)
 		return
 	}
+	ctx = hexa.MustNewContextFromRawContext(c)
 	m, err = helper.RawMessageToMessage(&rawMsg, payloadInstance)
 	return
 }
@@ -174,9 +177,9 @@ func (r *receiver) Close() error {
 // using nats-streaming driver.
 func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 	return &receiver{
-		cei: o.CtxExporterImporter,
-		nc:  o.NatsCon,
-		sc:  o.StreamingCon,
+		p:  o.ContextPropagator,
+		nc: o.NatsCon,
+		sc: o.StreamingCon,
 	}, o.Validate()
 }
 

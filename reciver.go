@@ -2,6 +2,7 @@ package hevent
 
 import (
 	"context"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
@@ -61,31 +62,25 @@ type (
 		Nack()
 	}
 
-	// MessageHeader is header of the message.
-	MessageHeader struct {
-		CorrelationID string `json:"correlation_id"` // required
-		ReplyChannel  string `json:"reply_channel"`  // optional (use if need to reply the response)
-		// Deprecated: I think we don't need to the Ctx field. it contains
-		// user,translator,... but we don't need to it. maybe just local of
-		// user can help in this context.
-		Ctx hexa.Map `json:"ctx"` // extract context as map
-	}
-
 	// RawMessage is the message sent by emitter,
 	// we will convert RawMessage to message and then
 	// pass it to the event handler.
 	RawMessage struct {
-		MessageHeader `json:"header"`
+		Headers map[string][]byte `json:"header"`
 
 		// Marshaller is the marshaller name to use its un-marshaller.
 		Marshaller string `json:"marshaller"`
 
-		Payload []byte `json:"payload"` // marshalled protobuf or marshalled json.
+		Payload []byte `json:"payload"` // encoded data.
 	}
 
 	// Message is the message that provide to event handler.
 	Message struct {
-		MessageHeader
+		Headers map[string][]byte
+
+		CorrelationId string
+		ReplyChannel  string
+
 		// type of payload is same as provided payload
 		// instance that provide on subscription.
 		Payload interface{}
@@ -116,16 +111,17 @@ func (so *SubscriptionOptions) Extra() []interface{} {
 	return so.extra
 }
 
-func (h MessageHeader) Validate() error {
-	return validation.ValidateStruct(&h,
-		validation.Field(&h.CorrelationID, validation.Required),
-		validation.Field(&h.Ctx, validation.Required),
+func (m Message) Validate() error { // TODO: I think we should remove this method.
+	return validation.ValidateStruct(&m,
+		validation.Field(&m.CorrelationId, validation.Required),
+		validation.Field(&m.Headers, validation.Required),
+		validation.Field(&m.Payload, validation.Required),
 	)
 }
 
 func (e RawMessage) Validate() error {
 	return validation.ValidateStruct(&e,
-		validation.Field(&e.MessageHeader, validation.Required),
+		validation.Field(&e.Headers, validation.Required),
 		validation.Field(&e.Marshaller, validation.Required),
 	)
 }
@@ -141,5 +137,4 @@ func NewSubscriptionOptions(channel string, payloadInstance interface{}, handler
 
 // Assertion
 var _ validation.Validatable = &SubscriptionOptions{}
-var _ validation.Validatable = &MessageHeader{}
 var _ validation.Validatable = &Message{}

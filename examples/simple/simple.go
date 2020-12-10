@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	"github.com/kamva/hexa-event"
 	"github.com/kamva/hexa-event/pulsar"
-	"github.com/kamva/hexa/db/mgmadapter"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
-	"time"
 )
 
 type HelloPayload struct {
@@ -23,8 +23,7 @@ const channelName = "hexa-example"
 
 var t = hexatranslator.NewEmptyDriver()
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
-var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
-var ctxExporterImporter = hexa.NewCtxExporterImporter(userExporter, l, t)
+var p = hexa.NewContextPropagator( l, t)
 
 func main() {
 	send()
@@ -44,8 +43,8 @@ func send() {
 
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
 		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),
-		CtxExporter:       ctxExporterImporter,
-		Marshaller:        hevent.NewJsonMarshaller(),
+		ContextPropagator: p,
+		Marshaller:        hevent.NewJsonEncoder(),
 	})
 	gutil.PanicErr(err)
 
@@ -59,7 +58,14 @@ func send() {
 		Key:     "test-key",
 	}
 
-	res, err := emitter.Emit(hexa.NewCtx(nil, "test-correlation-id", "en", hexa.NewGuest(), l, t), event)
+	ctx:=hexa.NewContext(hexa.ContextParams{
+		CorrelationId: "test-correlation-id",
+		Locale:        "en",
+		User:          hexa.NewGuest(),
+		Logger:        l,
+		Translator:    t,
+	})
+	res, err := emitter.Emit(ctx, event)
 	gutil.PanicErr(err)
 	fmt.Println(res)
 	fmt.Println("message sent :)")
@@ -72,7 +78,7 @@ func receive() {
 	})
 	gutil.PanicErr(err)
 
-	receiver, err := hexapulsar.NewReceiver(client, ctxExporterImporter)
+	receiver, err := hexapulsar.NewReceiver(client, p)
 	gutil.PanicErr(err)
 
 	defer func() {
@@ -89,7 +95,7 @@ func receive() {
 func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err error) {
 	gutil.PanicErr(err)
 	fmt.Println("running hello handler.")
-	fmt.Println(m.MessageHeader)
+	fmt.Println(m.Headers)
 	p := m.Payload.(*HelloPayload)
 	fmt.Println(p.Hello)
 	fmt.Println(c.User().Type())

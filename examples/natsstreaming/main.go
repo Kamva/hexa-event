@@ -1,17 +1,17 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/hexa-event/hestan"
-	"github.com/kamva/hexa/db/mgmadapter"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/stan.go"
-	"os"
-	"os/signal"
 )
 
 const (
@@ -23,8 +23,7 @@ const (
 
 var t = hexatranslator.NewEmptyDriver()
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
-var userExporter = hexa.NewUserExporterImporter(mgmadapter.EmptyID)
-var cei = hexa.NewCtxExporterImporter(userExporter, l, t)
+var p = hexa.NewContextPropagator(l, t)
 
 // Some other data
 var (
@@ -41,7 +40,13 @@ type HelloPayload struct {
 
 func main() {
 	emitter, receiver := bootstrap()
-	ctx := hexa.NewCtx(nil, correlationID, "en", hexa.NewGuest(), l, t)
+	ctx := hexa.NewContext(hexa.ContextParams{
+		CorrelationId: correlationID,
+		Locale:        "en",
+		User:          hexa.NewGuest(),
+		Logger:        l,
+		Translator:    t,
+	})
 	hlog.Info("connected...")
 
 	receive(receiver)
@@ -57,17 +62,17 @@ func bootstrap() (hevent.Emitter, hevent.Receiver) {
 	nc, sc := connect()
 
 	emitter, err := hestan.NewEmitter(hestan.EmitterOptions{
-		NatsCon:             nc,
-		StreamingCon:        sc,
-		CtxExporterImporter: cei,
-		Marshaller:          hevent.NewJsonMarshaller(),
+		NatsCon:           nc,
+		StreamingCon:      sc,
+		ContextPropagator: p,
+		Marshaller:        hevent.NewJsonEncoder(),
 	})
 	gutil.PanicErr(err)
 
 	receiver, err := hestan.NewReceiver(hestan.ReceiverOptions{
-		NatsCon:             nc,
-		StreamingCon:        sc,
-		CtxExporterImporter: cei,
+		NatsCon:           nc,
+		StreamingCon:      sc,
+		ContextPropagator: p,
 	})
 	gutil.PanicErr(err)
 

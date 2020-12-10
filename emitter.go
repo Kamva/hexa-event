@@ -1,7 +1,6 @@
 package hevent
 
 import (
-	"context"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 )
@@ -13,9 +12,6 @@ type (
 		// context can be nil.
 		// dont forget to validate the event here.
 		Emit(hexa.Context, *Event) (msgID string, err error)
-
-		// EmitWithCtx is just same as Emit, but need to context.
-		EmitWithCtx(context.Context, hexa.Context, *Event) (msgID string, err error)
 
 		// Close close the connection
 		Close() error
