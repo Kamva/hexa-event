@@ -110,7 +110,7 @@ func (e *emitter) Close() error {
 
 // DefaultProducerGenerator returns producer generator function
 // with default options.
-// TopicNamingFormat is the topic name pattern, e.g "persistent://public/default/%s", and
+// topicPattern is the topic name pattern, e.g "persistent://public/default/%s", and
 // then we set the provided topic name in the topic pattern.
 func DefaultProducerGenerator(topicPattern string) ProducerGenerator {
 	return CustomProducerGenerator(topicPattern, pulsar.ProducerOptions{})

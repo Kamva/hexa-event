@@ -65,7 +65,7 @@ func bootstrap() (hevent.Emitter, hevent.Receiver) {
 		NatsCon:           nc,
 		StreamingCon:      sc,
 		ContextPropagator: p,
-		Marshaller:        hevent.NewJsonEncoder(),
+		Encoder:           hevent.NewJsonEncoder(),
 	})
 	gutil.PanicErr(err)
 

@@ -19,7 +19,7 @@ type EmitterOptions struct {
 	NatsCon           *nats.Conn
 	StreamingCon      stan.Conn
 	ContextPropagator hexa.ContextPropagator
-	Marshaller        hevent.Encoder
+	Encoder           hevent.Encoder
 }
 
 func (o EmitterOptions) Validate() error {
@@ -27,7 +27,7 @@ func (o EmitterOptions) Validate() error {
 		validation.Field(&o.NatsCon, validation.Required),
 		validation.Field(&o.StreamingCon, validation.Required),
 		validation.Field(&o.ContextPropagator, validation.Required),
-		validation.Field(&o.Marshaller, validation.Required),
+		validation.Field(&o.Encoder, validation.Required),
 	)
 }
 
@@ -40,6 +40,11 @@ type emitter struct {
 
 func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
 	// TODO: implement publish async option also.
+
+	if err := event.Validate(); err != nil {
+		return "", tracer.Trace(err)
+	}
+
 	raw, err := helper.EventToRawMessage(ctx, event, e.p, e.encoder)
 	if err != nil {
 		return "", tracer.Trace(err)
@@ -50,7 +55,11 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err
 		return "", tracer.Trace(err)
 	}
 
-	hlog.With(hlog.String("channel", event.Channel), hlog.String("payload", string(payload))).Debug("emit event")
+	hlog.Debug("emit event",
+		hlog.String("channel", event.Channel),
+		hlog.String("payload", string(payload)),
+	)
+
 	return "", tracer.Trace(e.sc.Publish(event.Channel, payload))
 }
 
@@ -65,7 +74,7 @@ func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 		nc:      o.NatsCon,
 		sc:      o.StreamingCon,
 		p:       o.ContextPropagator,
-		encoder: o.Marshaller,
+		encoder: o.Encoder,
 	}, o.Validate()
 }
 
