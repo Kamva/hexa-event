@@ -129,11 +129,12 @@ func receive(receiver hevent.Receiver) {
 	gutil.PanicErr(receiver.SubscribeWithOptions(hestan.NewSubscriptionOptions(o)))
 }
 
-func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) {
+func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 	hlog.Info("correlation_id", hlog.String("correlation_id", ctx.CorrelationID()))
 	hlog.Info("reply_channel", hlog.String("reply_channel", msg.ReplyChannel))
 	hlog.Info("payload", hlog.String("payload", msg.Payload.(*HelloPayload).Hello))
+	return err
 }
 
 func waitToClose(emitter hevent.Emitter, receiver hevent.Receiver) () {

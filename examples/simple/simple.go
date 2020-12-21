@@ -23,7 +23,7 @@ const channelName = "hexa-example"
 
 var t = hexatranslator.NewEmptyDriver()
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
-var p = hexa.NewContextPropagator( l, t)
+var p = hexa.NewContextPropagator(l, t)
 
 func main() {
 	send()
@@ -44,7 +44,7 @@ func send() {
 	emitter, err := hexapulsar.NewEmitter(client, hexapulsar.EmitterOptions{
 		ProducerGenerator: hexapulsar.DefaultProducerGenerator(format),
 		ContextPropagator: p,
-		Marshaller:        hevent.NewJsonEncoder(),
+		Encoder:           hevent.NewJsonEncoder(),
 	})
 	gutil.PanicErr(err)
 
@@ -58,7 +58,7 @@ func send() {
 		Key:     "test-key",
 	}
 
-	ctx:=hexa.NewContext(hexa.ContextParams{
+	ctx := hexa.NewContext(hexa.ContextParams{
 		CorrelationId: "test-correlation-id",
 		Locale:        "en",
 		User:          hexa.NewGuest(),
@@ -78,7 +78,11 @@ func receive() {
 	})
 	gutil.PanicErr(err)
 
-	receiver, err := hexapulsar.NewReceiver(client, p)
+	receiver, err := hexapulsar.NewReceiver(hexapulsar.ReceiverOptions{
+		Client:            client,
+		ContextPropagator: p,
+		Encoder:           hevent.NewJsonEncoder(),
+	})
 	gutil.PanicErr(err)
 
 	defer func() {
@@ -92,7 +96,7 @@ func receive() {
 	gutil.PanicErr(err)
 }
 
-func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err error) {
+func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err error) error {
 	gutil.PanicErr(err)
 	fmt.Println("running hello handler.")
 	fmt.Println(m.Headers)
@@ -100,6 +104,7 @@ func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err er
 	fmt.Println(p.Hello)
 	fmt.Println(c.User().Type())
 	hc.Ack()
+	return nil
 }
 
 var _ hevent.EventHandler = sayHello

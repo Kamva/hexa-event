@@ -8,7 +8,6 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
-	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 	"github.com/nats-io/nats.go"
@@ -32,10 +31,10 @@ func (o EmitterOptions) Validate() error {
 }
 
 type emitter struct {
-	nc      *nats.Conn
-	sc      stan.Conn
-	p       hexa.ContextPropagator
-	encoder hevent.Encoder
+	nc           *nats.Conn
+	sc           stan.Conn
+	p            hexa.ContextPropagator
+	msgConverter hevent.RawMessageConverter
 }
 
 func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
@@ -45,7 +44,7 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err
 		return "", tracer.Trace(err)
 	}
 
-	raw, err := helper.EventToRawMessage(ctx, event, e.p, e.encoder)
+	raw, err := e.msgConverter.EventToRaw(ctx, event)
 	if err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -71,10 +70,10 @@ func (e *emitter) Close() error {
 // NewEmitter returns new emitter with tha nats-streaming driver.
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 	return &emitter{
-		nc:      o.NatsCon,
-		sc:      o.StreamingCon,
-		p:       o.ContextPropagator,
-		encoder: o.Encoder,
+		nc:           o.NatsCon,
+		sc:           o.StreamingCon,
+		p:            o.ContextPropagator,
+		msgConverter: hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder),
 	}, o.Validate()
 }
 

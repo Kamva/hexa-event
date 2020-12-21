@@ -13,7 +13,6 @@ import (
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
-	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 	"github.com/nats-io/nats.go"
@@ -29,12 +28,14 @@ type ReceiverOptions struct {
 	NatsCon           *nats.Conn
 	StreamingCon      stan.Conn
 	ContextPropagator hexa.ContextPropagator
+	Encoder           hevent.Encoder
 }
 
 type receiver struct {
-	p  hexa.ContextPropagator
-	nc *nats.Conn
-	sc stan.Conn
+	p            hexa.ContextPropagator
+	nc           *nats.Conn
+	sc           stan.Conn
+	msgConverter hevent.RawMessageConverter
 }
 
 func (o ReceiverOptions) Validate() error {
@@ -53,6 +54,7 @@ func (h *handlerContext) Ack() {
 			hlog.String("subject", h.msg.Subject),
 			hlog.String("msg_string", h.msg.String()),
 			hlog.Err(err),
+			hlog.ErrStack(err),
 		)
 	}
 }
@@ -133,7 +135,14 @@ func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler
 	return func(msg *stan.Msg) {
 		hlog.Debug("received event", hlog.String("subject", msg.Subject), hlog.String("msg", string(msg.Data)))
 		ctx, m, err := r.extractMessage(msg.Data, p)
-		h(newHandlerCtx(msg), ctx, m, tracer.Trace(err))
+		// Note: we do not send ack or
+		if err := h(newHandlerCtx(msg), ctx, m, tracer.Trace(err)); err != nil {
+			ctx.Logger().Error("error on handling event",
+				hlog.Err(err),
+				hlog.Any("headers", m.Headers),
+				hlog.String("reply_channel", m.ReplyChannel),
+			)
+		}
 	}
 }
 
@@ -150,15 +159,8 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 		err = tracer.Trace(err)
 		return
 	}
-	// extract Context:
-	c := context.Background()
-	c, err = r.p.Inject(rawMsg.Headers, context.Background())
-	if err != nil {
-		err = tracer.Trace(err)
-		return
-	}
-	ctx = hexa.MustNewContextFromRawContext(c)
-	m, err = helper.RawMessageToMessage(&rawMsg, payloadInstance)
+
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, payloadInstance)
 	return
 }
 
@@ -177,9 +179,10 @@ func (r *receiver) Close() error {
 // using nats-streaming driver.
 func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 	return &receiver{
-		p:  o.ContextPropagator,
-		nc: o.NatsCon,
-		sc: o.StreamingCon,
+		p:            o.ContextPropagator,
+		nc:           o.NatsCon,
+		sc:           o.StreamingCon,
+		msgConverter: hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder),
 	}, o.Validate()
 }
 

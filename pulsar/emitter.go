@@ -14,7 +14,6 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	"github.com/kamva/hexa-event"
-	"github.com/kamva/hexa-event/internal/helper"
 	"github.com/kamva/tracer"
 )
 
@@ -23,7 +22,7 @@ type (
 	EmitterOptions struct {
 		ProducerGenerator ProducerGenerator
 		ContextPropagator hexa.ContextPropagator
-		Marshaller        hevent.Encoder
+		Encoder           hevent.Encoder
 	}
 
 	// ProducerGenerator setOptionValues new producer
@@ -31,13 +30,13 @@ type (
 
 	// pulsar implementation of the hexa Emitter.
 	emitter struct {
-		client     pulsar.Client
-		pg         ProducerGenerator
-		producers  map[string]pulsar.Producer
-		marshaller hevent.Encoder
-		l          *sync.RWMutex
+		client    pulsar.Client
+		pg        ProducerGenerator
+		producers map[string]pulsar.Producer
+		l         *sync.RWMutex
 
-		p          hexa.ContextPropagator
+		p            hexa.ContextPropagator
+		msgConverter hevent.RawMessageConverter
 	}
 )
 
@@ -66,7 +65,7 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
 }
 
 func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
-	msg, err := helper.EventToRawMessage(ctx, event, e.p, e.marshaller)
+	msg, err := e.msgConverter.EventToRaw(ctx, event)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -134,12 +133,12 @@ func NewEmitter(client pulsar.Client, options EmitterOptions) (hevent.Emitter, e
 	}
 
 	return &emitter{
-		client:     client,
-		pg:         options.ProducerGenerator,
-		producers:  make(map[string]pulsar.Producer),
-		marshaller: options.Marshaller,
-		l:          &sync.RWMutex{},
-		p:          options.ContextPropagator,
+		client:       client,
+		pg:           options.ProducerGenerator,
+		producers:    make(map[string]pulsar.Producer),
+		l:            &sync.RWMutex{},
+		p:            options.ContextPropagator,
+		msgConverter: hevent.NewRawMessageConverter(options.ContextPropagator, options.Encoder),
 	}, nil
 }
 

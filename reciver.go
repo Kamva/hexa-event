@@ -35,7 +35,9 @@ type (
 	}
 
 	// EventHandler handle events.
-	EventHandler func(HandlerContext, hexa.Context, Message, error)
+	// pulsar and hestan implementations just log returned error, in kafka
+	// if you return error, it will push event to the retry or DLQ topic.
+	EventHandler func(HandlerContext, hexa.Context, Message, error) error
 
 	Receiver interface {
 		// Subscribe subscribe to the provided channel
@@ -66,7 +68,7 @@ type (
 	// we will convert RawMessage to message and then
 	// pass it to the event handler.
 	RawMessage struct {
-		Headers map[string][]byte `json:"header"`
+		Headers map[string][]byte `json:"header,omitempty"`
 
 		// Marshaller is the marshaller name to use its un-marshaller.
 		Marshaller string `json:"marshaller"`

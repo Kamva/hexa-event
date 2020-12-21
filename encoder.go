@@ -77,8 +77,8 @@ func NewProtobufEncoder() Encoder {
 	return &protobufEncoder{}
 }
 
-// NewMarshallerByName returns new instance of marshaller by its name
-func NewMarshallerByName(name string) Encoder {
+// NewEncoderByName returns new instance of marshaller by its name
+func NewEncoderByName(name string) Encoder {
 	switch name {
 	case protobufEncoderName:
 		return NewProtobufEncoder()
@@ -89,7 +89,7 @@ func NewMarshallerByName(name string) Encoder {
 
 // DecodePayloadByInstance get the payload and decode it.
 func DecodePayloadByInstance(payload []byte, marshallerName string, payloadInstance interface{}) (interface{}, error) {
-	marshaller := NewMarshallerByName(marshallerName)
+	marshaller := NewEncoderByName(marshallerName)
 
 	v, err := gutil.ValuePtr(payloadInstance)
 	if err != nil {

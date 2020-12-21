@@ -9,7 +9,7 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
-	"github.com/kamva/hexa-event/internal/helper"
+	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 )
 
@@ -23,7 +23,9 @@ type (
 		wg                       *sync.WaitGroup
 		done                     chan bool // on close the 'done' channel, all consumers jobs should close consumer and return.
 
-		p hexa.ContextPropagator
+		p            hexa.ContextPropagator
+		encoder      hevent.Encoder
+		msgConverter hevent.RawMessageConverter
 	}
 
 	// handlerContext implements the HandlerContext interface.
@@ -81,7 +83,18 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.
 	r.wg.Add(1)
 	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
 		ctx, message, err := r.extractMessage(msg, pi)
-		h(newHandlerCtx(msg), ctx, message, err)
+		// Note: we just log the handler error, if you want to send nack,
+		// you should call to the Nack method.
+		if err := h(newHandlerCtx(msg), ctx, message, err); err != nil {
+			ctx.Logger().Error("error on handling event",
+				hlog.String("topic", msg.Topic()),
+				hlog.String("key", msg.Key()),
+				hlog.String("subscription", msg.Subscription()),
+				hlog.Any("headers", message.Headers),
+				hlog.Err(err),
+				hlog.ErrStack(err),
+			)
+		}
 	})
 	return nil
 }
@@ -108,19 +121,8 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 		err = tracer.Trace(err)
 		return
 	}
-	// extract Context:
-	c := context.Background()
-	c, err = r.p.Inject(rawMsg.Headers, c)
-	if err != nil {
-		err = tracer.Trace(err)
-		return
-	}
-	ctx = hexa.MustNewContextFromRawContext(c)
-	m, err = helper.RawMessageToMessage(&rawMsg, payloadInstance)
-	if err != nil {
-		return
-	}
 
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, payloadInstance)
 	return
 }
 
@@ -148,19 +150,26 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 	}
 }
 
+type ReceiverOptions struct {
+	Client            pulsar.Client
+	ContextPropagator hexa.ContextPropagator
+	Encoder           hevent.Encoder
+}
+
 // NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
-func NewReceiver(client pulsar.Client, p hexa.ContextPropagator) (hevent.Receiver, error) {
-	if client == nil {
+func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
+	if o.Client == nil {
 		return nil, tracer.Trace(errors.New("client can not be nil"))
 	}
 
 	return &receiver{
-		p:                        p,
-		client:                   client,
+		p:                        o.ContextPropagator,
+		client:                   o.Client,
 		consumerOptionsGenerator: consumerOptionsGenerator{},
 		consumers:                make([]pulsar.Consumer, 0),
 		wg:                       &sync.WaitGroup{},
 		done:                     make(chan bool),
+		msgConverter:             hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder),
 	}, nil
 }
 
