@@ -95,13 +95,14 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 	// The `ConsumeClaim` itself is called within a goroutine, see:
 	// https://github.com/Shopify/sarama/blob/master/consumer_group.go#L27-L29
 	for msg := range claim.Messages() {
-		hlog.Debug("new kafka msg",
+		hlog.Debug("received new kafka msg",
 			hlog.String("groupId", h.o.Group),
-			hlog.String("Topic", msg.Topic),
+			hlog.String("topic", msg.Topic),
 			hlog.Int32("partition", msg.Partition),
 			hlog.Time("time", msg.Timestamp),
 			hlog.String("key", string(msg.Key)),
 			hlog.String("value", string(msg.Value)),
+			hlog.Int("retry_num", retryCount),
 		)
 		// backoff
 		if retryCount != 0 {
@@ -115,14 +116,15 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 
 		if err := h.handler(newEmptyHandlerContext(), hctx, hmsg, err); err != nil {
 			// log error
-			hctx.Logger().Error("error on handling kafka event",
+			hctx.Logger().Error("event handler failed to handle message, we will push event to either retry or dlq topics)",
 				hlog.String("topic", msg.Topic),
 				hlog.String("key", string(msg.Key)),
 				hlog.Int64("offset", msg.Offset),
 				hlog.Int32("partition", msg.Partition),
-				hlog.Any("headers", hmsg.Headers),
+				hlog.Int("retry_num", retryCount),
 				hlog.Err(err),
 				hlog.ErrStack(err),
+				hlog.String("next_topic", h.qm.NextTopic(retryCount)),
 			)
 
 			// retry the message
