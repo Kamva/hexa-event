@@ -1,7 +1,6 @@
-package hafka
+package kafkabox
 
 import (
-	"github.com/Shopify/sarama"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
@@ -10,21 +9,21 @@ import (
 )
 
 type EmitterOptions struct {
-	Producer          sarama.AsyncProducer
+	Outbox            OutboxStore
 	ContextPropagator hexa.ContextPropagator
 	Encoder           hevent.Encoder
 }
 
 func (o EmitterOptions) Validate() error {
 	return validation.ValidateStruct(&o,
-		validation.Field(&o.Producer, validation.Required),
+		validation.Field(&o.Outbox, validation.Required),
 		validation.Field(&o.ContextPropagator, validation.Required),
 		validation.Field(&o.Encoder, validation.Required),
 	)
 }
 
 type emitter struct {
-	producer     sarama.AsyncProducer
+	outbox       OutboxStore
 	p            hexa.ContextPropagator
 	msgConverter MessageConverter
 }
@@ -37,7 +36,7 @@ func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 	rawMsgConverter := hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder)
 
 	return &emitter{
-		producer:     o.Producer,
+		outbox:       o.Outbox,
 		p:            o.ContextPropagator,
 		msgConverter: newMessageConverter(rawMsgConverter),
 	}, nil
@@ -48,7 +47,7 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err
 		return "", tracer.Trace(err)
 	}
 
-	msg, err := e.msgConverter.EventToProducerMessage(ctx, event)
+	msg, err := e.msgConverter.EventToOutboxMessage(ctx, event)
 	if err != nil {
 		return "", tracer.Trace(err)
 	}
@@ -57,35 +56,22 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err
 		return "", tracer.Trace(err)
 	}
 
-	e.producer.Input() <- msg
-
-	return "", nil
+	return msg.ID, tracer.Trace(e.outbox.Create(ctx, msg))
 }
 
-func (e *emitter) logMessage(msg *sarama.ProducerMessage) error {
-	key, err := msg.Key.Encode()
-	if err != nil {
-		return tracer.Trace(err)
-	}
-
-	val, err := msg.Value.Encode()
-	if err != nil {
-		return tracer.Trace(err)
-	}
-
+func (e *emitter) logMessage(msg *OutboxMessage) error {
 	hlog.Debug("emitting kafka event",
 		hlog.String("topic", msg.Topic),
-		hlog.Time("timestamp", msg.Timestamp),
-		hlog.String("key", string(key)),
-		hlog.String("payload", string(val)),
+		hlog.String("key", msg.Key),
+		hlog.String("value", msg.Value),
+		hlog.Any("headers", msg.Headers),
 	)
 
 	return nil
 }
 
 func (e *emitter) Close() error {
-	e.producer.AsyncClose()
-	return nil
+	return e.outbox.Close()
 }
 
 var _ hevent.Emitter = &emitter{}

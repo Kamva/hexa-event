@@ -5,6 +5,11 @@
 go get github.com/kamva/hexa-event
 ```
 
+__Supported message queues :__
+- Kafka & Kafka outbox pattern
+- Pulsar
+- Nats streaming
+
 __Known errors :__
 - when two time subscribe with same subscription name with subscription type : `pulsar.Exclusive` on __pulsar__ driver, you get this error :  
  ```bash
@@ -30,6 +35,7 @@ we use this or some other thing which gets an struct which return db doc and on 
 - [x] Add support of protocol buffer to send events. 
 - [x] Add `Extra []interface{}` option to the `SubscriptionOptions` to get more features on each subscription relative to each driver. remove list of options in consumerGenerator(we can generate without a consumer generator or simple consumer generator) __[Accepted]__.
 - [x] Implement nats-streaming driver 
+- [ ] Implement a new background process to remove old messages in the kafka outbox pattern.
 - [ ] Implement Mock driver 
 - [ ] Write Tests.
 - [ ] Implement mock

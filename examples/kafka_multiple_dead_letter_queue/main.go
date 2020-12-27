@@ -41,6 +41,7 @@ func main() {
 		ContextPropagator: p,
 		Encoder:           hevent.NewJsonEncoder(),
 	})
+	gutil.PanicErr(err)
 	defer emitter.Close()
 
 	receiver := hafka.NewReceiver(hafka.ReceiverOptions{

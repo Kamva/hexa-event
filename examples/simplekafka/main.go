@@ -132,5 +132,3 @@ func mapBytesToMapString(b map[string][]byte) map[string]string {
 	}
 	return m
 }
-
-
