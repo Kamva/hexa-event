@@ -32,11 +32,11 @@ type emitter struct {
 	msgConverter MessageConverter
 }
 
-func (e *emitter) Identifier() string {
+func (e *emitter) HealthIdentifier() string {
 	return "kafka_producer"
 }
 
-func (e *emitter) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
+func (e *emitter) LivenessStatus(_ context.Context) hexa.LivenessStatus {
 	if len(e.client.Brokers()) > 0 {
 		return hexa.StatusAlive
 	}
@@ -44,12 +44,20 @@ func (e *emitter) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
 	return hexa.StatusDead
 }
 
-func (e *emitter) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
+func (e *emitter) ReadinessStatus(_ context.Context) hexa.ReadinessStatus {
 	if len(e.client.Brokers()) > 0 {
-		return hexa.StatusAlive
+		return hexa.StatusReady
 	}
 
-	return hexa.StatusDead
+	return hexa.StatusUnReady
+}
+
+func (e *emitter) HealthStatus(ctx context.Context) hexa.HealthStatus {
+	return hexa.HealthStatus{
+		Id:    e.HealthIdentifier(),
+		Alive: e.LivenessStatus(ctx),
+		Ready: e.ReadinessStatus(ctx),
+	}
 }
 
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {

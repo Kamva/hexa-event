@@ -50,6 +50,14 @@ func (e *emitter) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
 	return hexa.StatusReady
 }
 
+func (e *emitter) HealthStatus(ctx context.Context) hexa.HealthStatus {
+	return hexa.HealthStatus{
+		Id:    e.HealthIdentifier(),
+		Alive: e.LivenessStatus(ctx),
+		Ready: e.ReadinessStatus(ctx),
+	}
+}
+
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 	if err := o.Validate(); err != nil {
 		return nil, tracer.Trace(err)

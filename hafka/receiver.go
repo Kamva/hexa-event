@@ -22,7 +22,7 @@ func (r *receiver) HealthIdentifier() string {
 	return "kafka_receiver"
 }
 
-func (r *receiver) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
+func (r *receiver) LivenessStatus(_ context.Context) hexa.LivenessStatus {
 	if len(r.producerClient.Brokers()) > 0 {
 		return hexa.StatusAlive
 	}
@@ -30,12 +30,20 @@ func (r *receiver) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
 	return hexa.StatusDead
 }
 
-func (r *receiver) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
+func (r *receiver) ReadinessStatus(_ context.Context) hexa.ReadinessStatus {
 	if len(r.producerClient.Brokers()) > 0 {
-		return hexa.StatusAlive
+		return hexa.StatusReady
 	}
 
-	return hexa.StatusDead
+	return hexa.StatusUnReady
+}
+
+func (r *receiver) HealthStatus(ctx context.Context) hexa.HealthStatus {
+	return hexa.HealthStatus{
+		Id:    r.HealthIdentifier(),
+		Alive: r.LivenessStatus(ctx),
+		Ready: r.ReadinessStatus(ctx),
+	}
 }
 
 type ReceiverOptions struct {
