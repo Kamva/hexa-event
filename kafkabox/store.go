@@ -11,11 +11,12 @@ import (
 type OutboxStore interface {
 	Migrate() error // do migration if needed.
 	Create(c context.Context, msg *OutboxMessage) error
+	Ping(c context.Context) error
 	Close() error
 }
 
 type outboxStore struct {
-	mgmadapter.Repository
+	mgmadapter.Store
 	coll *mongo.Collection
 }
 
@@ -32,6 +33,10 @@ func (s *outboxStore) Create(c context.Context, msg *OutboxMessage) error {
 func (s *outboxStore) Close() error {
 	// we Don't need to do anything, connection should be closed by the app.
 	return nil
+}
+
+func (s *outboxStore) Ping(ctx context.Context) error {
+	return tracer.Trace(s.coll.Database().Client().Ping(ctx, nil))
 }
 
 func NewOutboxStore(coll *mongo.Collection) OutboxStore {

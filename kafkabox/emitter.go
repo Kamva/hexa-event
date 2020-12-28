@@ -1,6 +1,8 @@
 package kafkabox
 
 import (
+	"context"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
@@ -26,6 +28,26 @@ type emitter struct {
 	outbox       OutboxStore
 	p            hexa.ContextPropagator
 	msgConverter MessageConverter
+}
+
+func (e *emitter) HealthIdentifier() string {
+	return "kafka_outbox_emitter"
+}
+
+func (e *emitter) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
+	if err := e.outbox.Ping(ctx); err != nil {
+		hlog.Error("error on ping to the kafka outbox store", hlog.ErrStack(tracer.Trace(err)), hlog.Err(err))
+		return hexa.StatusDead
+	}
+	return hexa.StatusAlive
+}
+
+func (e *emitter) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
+	if err := e.outbox.Ping(ctx); err != nil {
+		hlog.Error("error on ping to the kafka outbox store", hlog.ErrStack(tracer.Trace(err)), hlog.Err(err))
+		return hexa.StatusUnReady
+	}
+	return hexa.StatusReady
 }
 
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
@@ -75,3 +97,4 @@ func (e *emitter) Close() error {
 }
 
 var _ hevent.Emitter = &emitter{}
+var _ hexa.Health = &emitter{}

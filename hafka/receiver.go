@@ -1,6 +1,7 @@
 package hafka
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -12,26 +13,51 @@ import (
 
 type receiver struct {
 	p              hexa.ContextPropagator
-	cfg            *sarama.Config
 	consumerGroups []ConsumerGroup
+	producerClient sarama.Client
 	producer       sarama.AsyncProducer
+}
+
+func (r *receiver) HealthIdentifier() string {
+	return "kafka_receiver"
+}
+
+func (r *receiver) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
+	if len(r.producerClient.Brokers()) > 0 {
+		return hexa.StatusAlive
+	}
+
+	return hexa.StatusDead
+}
+
+func (r *receiver) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
+	if len(r.producerClient.Brokers()) > 0 {
+		return hexa.StatusAlive
+	}
+
+	return hexa.StatusDead
 }
 
 type ReceiverOptions struct {
 	ContextPropagator hexa.ContextPropagator
-	// This is the global config, for now we don't use it
-	// and you should provide config per subscription.
-	Config   *sarama.Config
-	Producer sarama.AsyncProducer
+
+	// We use this client to crate producer to push
+	// messages retry queues.
+	Client sarama.Client
 }
 
-func NewReceiver(o ReceiverOptions) hevent.Receiver {
+func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
+	producer, err := sarama.NewAsyncProducerFromClient(o.Client)
+	if err != nil {
+		return nil, tracer.Trace(err)
+	}
+
 	return &receiver{
 		p:              o.ContextPropagator,
-		cfg:            o.Config,
 		consumerGroups: make([]ConsumerGroup, 0),
-		producer:       o.Producer,
-	}
+		producerClient: o.Client,
+		producer:       producer,
+	}, nil
 }
 
 func (r *receiver) Subscribe(channel string, payloadInstance interface{}, h hevent.EventHandler) error {
@@ -135,3 +161,4 @@ func (r *receiver) Close() error {
 }
 
 var _ hevent.Receiver = &receiver{}
+var _ hexa.Health = &receiver{}

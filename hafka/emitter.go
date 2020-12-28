@@ -1,6 +1,8 @@
 package hafka
 
 import (
+	"context"
+
 	"github.com/Shopify/sarama"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
@@ -10,14 +12,14 @@ import (
 )
 
 type EmitterOptions struct {
-	Producer          sarama.AsyncProducer
+	Client            sarama.Client
 	ContextPropagator hexa.ContextPropagator
 	Encoder           hevent.Encoder
 }
 
 func (o EmitterOptions) Validate() error {
 	return validation.ValidateStruct(&o,
-		validation.Field(&o.Producer, validation.Required),
+		validation.Field(&o.Client, validation.Required),
 		validation.Field(&o.ContextPropagator, validation.Required),
 		validation.Field(&o.Encoder, validation.Required),
 	)
@@ -25,8 +27,29 @@ func (o EmitterOptions) Validate() error {
 
 type emitter struct {
 	producer     sarama.AsyncProducer
+	client       sarama.Client
 	p            hexa.ContextPropagator
 	msgConverter MessageConverter
+}
+
+func (e *emitter) Identifier() string {
+	return "kafka_producer"
+}
+
+func (e *emitter) LivenessStatus(ctx context.Context) hexa.LivenessStatus {
+	if len(e.client.Brokers()) > 0 {
+		return hexa.StatusAlive
+	}
+
+	return hexa.StatusDead
+}
+
+func (e *emitter) ReadinessStatus(ctx context.Context) hexa.ReadinessStatus {
+	if len(e.client.Brokers()) > 0 {
+		return hexa.StatusAlive
+	}
+
+	return hexa.StatusDead
 }
 
 func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
@@ -36,8 +59,14 @@ func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 
 	rawMsgConverter := hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder)
 
+	producer, err := sarama.NewAsyncProducerFromClient(o.Client)
+	if err != nil {
+		return nil, tracer.Trace(err)
+	}
+
 	return &emitter{
-		producer:     o.Producer,
+		producer:     producer,
+		client:       o.Client,
 		p:            o.ContextPropagator,
 		msgConverter: newMessageConverter(rawMsgConverter),
 	}, nil
@@ -89,3 +118,4 @@ func (e *emitter) Close() error {
 }
 
 var _ hevent.Emitter = &emitter{}
+var _ hexa.Health = &emitter{}

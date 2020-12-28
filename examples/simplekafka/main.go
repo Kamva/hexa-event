@@ -36,19 +36,19 @@ func main() {
 		hafka.WithInitialOffset(sarama.OffsetOldest),
 	)
 
-	producer := gutil.Must(sarama.NewAsyncProducer(BootstrapServers, cfg)).(sarama.AsyncProducer)
+	client := gutil.Must(sarama.NewClient(BootstrapServers, cfg)).(sarama.Client)
 	emitter, err := hafka.NewEmitter(hafka.EmitterOptions{
-		Producer:          producer,
+		Client:            client,
 		ContextPropagator: p,
 		Encoder:           hevent.NewJsonEncoder(),
 	})
 	defer emitter.Close()
 
-	receiver := hafka.NewReceiver(hafka.ReceiverOptions{
+	receiver, err := hafka.NewReceiver(hafka.ReceiverOptions{
 		ContextPropagator: p,
-		Config:            cfg,
-		Producer:          producer,
+		Client:            client,
 	})
+	gutil.PanicErr(err)
 	defer receiver.Close()
 
 	gutil.PanicErr(err)
