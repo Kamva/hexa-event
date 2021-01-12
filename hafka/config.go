@@ -4,6 +4,14 @@ import "github.com/Shopify/sarama"
 
 type ConfigOption func(cfg *sarama.Config)
 
+
+func NewConfigWithDefaults(version sarama.KafkaVersion, initialOffset int64) *sarama.Config {
+	return NewConfig(
+		WithVersion(version),
+		WithInitialOffset(sarama.OffsetOldest),
+	)
+}
+
 func NewConfig(options ...ConfigOption) *sarama.Config {
 	cfg := sarama.NewConfig()
 	for _, o := range options {
@@ -27,5 +35,3 @@ func WithInitialOffset(offset int64) ConfigOption {
 		cfg.Consumer.Offsets.Initial = offset
 	}
 }
-
-

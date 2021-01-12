@@ -98,10 +98,8 @@ func sendEvents(c context.Context, e hevent.Emitter, topic string, interval time
 }
 
 func subscribeToEvents(receiver hevent.Receiver) {
-	cfg := hafka.NewConfig(
-		hafka.WithVersion(version),
-		hafka.WithInitialOffset(sarama.OffsetOldest),
-	)
+	cfg := hafka.NewConfigWithDefaults(version, sarama.OffsetOldest)
+
 	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,

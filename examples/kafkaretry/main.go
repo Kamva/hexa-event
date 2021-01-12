@@ -88,9 +88,9 @@ func subscribeToEvents(receiver hevent.Receiver) {
 	)
 	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
 		BootstrapServers: BootstrapServers,
-		Config:           cfg,
-		Topic:            "salam",
-		Group:            "check_salam_message",
+		Config: cfg,
+		Topic: "salam",
+		Group: "check_salam_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2,
