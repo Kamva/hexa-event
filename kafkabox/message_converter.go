@@ -45,7 +45,7 @@ func (c *messageConverter) EventToOutboxMessage(ctx hexa.Context, event *hevent.
 		Key:       event.Key,
 		Value:     string(val),
 		Headers:   headers,
-		CreatedAt: time.Now(),
+		EmittedAt: time.Now(),
 	}, nil
 }
 

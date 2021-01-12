@@ -15,5 +15,5 @@ type OutboxMessage struct {
 	Key       string    `json:"key"`
 	Value     string    `json:"value"`
 	Headers   []Header  `json:"headers"`
-	CreatedAt time.Time `json:"created_at"`
+	EmittedAt time.Time `json:"emitted_at"`
 }
