@@ -27,7 +27,7 @@ func main() {
 	gutil.PanicErr(err)
 	gutil.PanicErr(client.Connect(context.Background()))
 
-	coll := client.Database("kafka_lab").Collection("outbox")
+	coll := client.Database("kafka_lab").Collection(kafkabox.CollectionName)
 
 	emitter, err := kafkabox.NewEmitter(kafkabox.EmitterOptions{
 		Outbox:            kafkabox.NewOutboxStore(coll),

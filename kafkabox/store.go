@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const CollectionName = "outbox"
+
 type OutboxStore interface {
 	Migrate() error // do migration if needed.
 	Create(c context.Context, msg *OutboxMessage) error

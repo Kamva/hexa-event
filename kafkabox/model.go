@@ -8,7 +8,7 @@ type Header struct {
 	Value string `json:"value"`
 }
 
-// OutboxMessage is the outbox model
+// OutboxMessage is the outbox collection's model
 type OutboxMessage struct {
 	ID        string    `json:"id"`
 	Topic     string    `json:"topic"`
