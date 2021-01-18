@@ -15,9 +15,8 @@ import (
 	"github.com/kamva/hexa/hlog"
 )
 
-const (
-	Version = "2.3.0"
-)
+const Version = "2.3.0"
+
 
 var BootstrapServers = []string{"localhost:9092"}
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
@@ -50,7 +49,6 @@ func main() {
 	gutil.PanicErr(err)
 	defer receiver.Close()
 
-	gutil.PanicErr(err)
 
 	sendEvent(emitter, "salam")
 	subscribeToEvents(receiver)

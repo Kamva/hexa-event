@@ -37,6 +37,7 @@ func (cg *consumerGroup) Consume() error {
 	topics := []string{cg.o.Topic}
 	topics = append(topics, cg.qm.RetryTopics()...)
 
+	// TODO: I think this is not true and we should create a loop and consume again and again(rebalanced).
 	return tracer.Trace(cg.scg.Consume(context.Background(), topics, cg.cgHandler))
 }
 
@@ -114,18 +115,14 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 
 		hctx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg, h.o.PayloadInstance)
 
-		if err := h.handler(newEmptyHandlerContext(), hctx, hmsg, err); err != nil {
+		if err != nil {
+			hlog.Error("can not convert raw message to hexa event message", h.logMsgErr(msg, err, retryCount)...)
+
+			// retry the message
+			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
+		} else if err := h.handler(newEmptyHandlerContext(), hctx, hmsg, err); err != nil {
 			// log error
-			hctx.Logger().Error("event handler failed to handle message, we will push event to either retry or dlq topics)",
-				hlog.String("topic", msg.Topic),
-				hlog.String("key", string(msg.Key)),
-				hlog.Int64("offset", msg.Offset),
-				hlog.Int32("partition", msg.Partition),
-				hlog.Int("retry_num", retryCount),
-				hlog.Err(err),
-				hlog.ErrStack(err),
-				hlog.String("next_topic", h.qm.NextTopic(retryCount)),
-			)
+			hctx.Logger().Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
 			// retry the message
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
@@ -136,6 +133,19 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 	s.Commit()
 
 	return nil
+}
+
+func (h *cgHandler) logMsgErr(msg *sarama.ConsumerMessage, err error, retryCount int) []hlog.Field {
+	return []hlog.Field{
+		hlog.String("topic", msg.Topic),
+		hlog.String("key", string(msg.Key)),
+		hlog.Int64("offset", msg.Offset),
+		hlog.Int32("partition", msg.Partition),
+		hlog.Int("retry_num", retryCount),
+		hlog.Err(err),
+		hlog.ErrStack(err),
+		hlog.String("next_topic", h.qm.NextTopic(retryCount)),
+	}
 }
 
 type emptyHandlerContext struct {

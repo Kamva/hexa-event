@@ -39,9 +39,9 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 	headers[ReplyChannelHeaderKey] = []byte(event.ReplyChannel)
 
 	return &RawMessage{
-		Headers:    headers,
-		Marshaller: m.e.Name(),
-		Payload:    payload,
+		Headers: headers,
+		Encoder: m.e.Name(),
+		Payload: payload,
 	}, err
 }
 
@@ -57,7 +57,7 @@ func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMess
 	ctx = hexa.MustNewContextFromRawContext(c)
 
 	var p interface{}
-	p, err = DecodePayloadByInstance(rawMsg.Payload, rawMsg.Marshaller, payloadInstance)
+	p, err = DecodePayloadByInstance(rawMsg.Payload, rawMsg.Encoder, payloadInstance)
 
 	msg = Message{
 		Headers:       rawMsg.Headers,

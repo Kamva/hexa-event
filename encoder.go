@@ -12,7 +12,7 @@ import (
 type (
 	// Encoder encode and decode the event payload.
 	Encoder interface {
-		// Return the marshaller name.
+		// Return the Encoder name.
 		Name() string
 		Encode(interface{}) ([]byte, error)
 		Decode([]byte, interface{}) error
@@ -67,17 +67,17 @@ func (m protobufEncoder) Decode(buf []byte, v interface{}) error {
 	return proto.Unmarshal(buf, pb)
 }
 
-// NewJsonEncoder returns new instance of the json marshaller.
+// NewJsonEncoder returns new instance of the json encoder.
 func NewJsonEncoder() Encoder {
 	return &jsonEncoder{}
 }
 
-// NewProtobufEncoder returns new instance of the protobuf marshaller.
+// NewProtobufEncoder returns new instance of the protobuf encoder.
 func NewProtobufEncoder() Encoder {
 	return &protobufEncoder{}
 }
 
-// NewEncoderByName returns new instance of marshaller by its name
+// NewEncoderByName returns new instance of encoder by its name
 func NewEncoderByName(name string) Encoder {
 	switch name {
 	case protobufEncoderName:
@@ -88,15 +88,15 @@ func NewEncoderByName(name string) Encoder {
 }
 
 // DecodePayloadByInstance get the payload and decode it.
-func DecodePayloadByInstance(payload []byte, marshallerName string, payloadInstance interface{}) (interface{}, error) {
-	marshaller := NewEncoderByName(marshallerName)
+func DecodePayloadByInstance(payload []byte, encoderName string, payloadInstance interface{}) (interface{}, error) {
+	ecoder := NewEncoderByName(encoderName)
 
 	v, err := gutil.ValuePtr(payloadInstance)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
 
-	err = marshaller.Decode(payload, v)
+	err = ecoder.Decode(payload, v)
 	return v, err
 }
 

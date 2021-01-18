@@ -70,8 +70,8 @@ type (
 	RawMessage struct {
 		Headers map[string][]byte `json:"header,omitempty"`
 
-		// Marshaller is the marshaller name to use its un-marshaller.
-		Marshaller string `json:"marshaller"`
+		// Encoder is the encoder name to use its decoder.
+		Encoder string `json:"encoder"`
 
 		Payload []byte `json:"payload"` // encoded data.
 	}
@@ -124,7 +124,7 @@ func (m Message) Validate() error { // TODO: I think we should remove this metho
 func (e RawMessage) Validate() error {
 	return validation.ValidateStruct(&e,
 		validation.Field(&e.Headers, validation.Required),
-		validation.Field(&e.Marshaller, validation.Required),
+		validation.Field(&e.Encoder, validation.Required),
 	)
 }
 

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+// To generate golang run:
+// protoc -I=. --go_out=. ./examples/kafka_outbox_consume/hello/hello.proto
+
+
+package hello;
+option go_package="examples/kafka_outbox_consume/hello;hello";
+
+message HelloPayload{
+  string name = 1;
+  int32 age = 2;
+}

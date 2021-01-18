@@ -22,8 +22,8 @@ type (
 		Key          string // required, can use to specify partition number.(see pulsar docs)
 		Channel      string
 		ReplyChannel string // optional (use if need to reply the response)
-		// It will marshall using either protobuf,json,... marshaller(relative to config of emitter).
-		// Dont forget that your emitter marshaller and event receivers un-marshaller should match with each other.
+		// It will encode using either protobuf,json,... encoder(relative to config of emitter).
+		// Dont forget that your emitter encoder and event receivers decoder should match with each other.
 		Payload interface{}
 	}
 )

@@ -16,5 +16,5 @@ require (
 	github.com/nats-io/stan.go v0.7.0
 	github.com/stretchr/testify v1.6.1
 	go.mongodb.org/mongo-driver v1.4.3
-	google.golang.org/protobuf v1.24.0 // indirect
+	google.golang.org/protobuf v1.24.0
 )
