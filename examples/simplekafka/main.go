@@ -18,10 +18,11 @@ import (
 
 const (
 	Version = "2.3.0"
+	topic="hi_salam"
 )
 
 var BootstrapServers = []string{"localhost:9092"}
-var l = hlog.NewPrinterDriver(hlog.DebugLevel)
+var l = hlog.NewPrinterDriver(hlog.InfoLevel)
 var t = hexatranslator.NewEmptyDriver()
 var p = hexa.NewContextPropagator(l, t)
 var version = gutil.Must(sarama.ParseKafkaVersion(Version)).(sarama.KafkaVersion)
@@ -31,6 +32,7 @@ type HelloPayload struct {
 }
 
 func main() {
+	hlog.SetGlobalLogger(l)
 	cfg := hafka.NewConfig(
 		hafka.WithVersion(version),
 		hafka.WithInitialOffset(sarama.OffsetOldest),
@@ -48,13 +50,14 @@ func main() {
 		ContextPropagator: p,
 		Client:            client,
 	})
+
 	gutil.PanicErr(err)
 	defer receiver.Close()
 
 	gutil.PanicErr(err)
 	c, cancel := context.WithCancel(context.Background())
 	_ = c
-	sendEvents(c, emitter, "hi", time.Second)
+	sendEvents(c, emitter, time.Second)
 	subscribeToEvents(receiver)
 
 	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
@@ -69,9 +72,9 @@ func main() {
 
 }
 
-func sendEvents(c context.Context, e hevent.Emitter, topic string, interval time.Duration) {
+func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 	hctx := hexa.NewContext(hexa.ContextParams{
-		CorrelationId: "my_correlation_id",
+		CorrelationId: gutil.UUID(),
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
 		Logger:        l,
@@ -83,7 +86,7 @@ func sendEvents(c context.Context, e hevent.Emitter, topic string, interval time
 			select {
 			case <-ticker.C:
 				_, err := e.Emit(hctx, &hevent.Event{
-					Key:     "hello_key",
+					Key:    gutil.UUID(),
 					Channel: topic,
 					Payload: &HelloPayload{
 						Name: "ali",
@@ -103,7 +106,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
-		Topic:            "hi",
+		Topic:            topic,
 		Group:            "check_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          helloHandler,

@@ -2,6 +2,8 @@ package hafka
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -15,33 +17,75 @@ type ConsumerGroup interface {
 	Close() error
 }
 
+type ConsumerGroupHandler interface {
+	sarama.ConsumerGroupHandler
+	Ready() <-chan struct{}
+}
+
 // ConsumerGroup will create sarama consumer group and consume it.
 type consumerGroup struct {
 	o         ConsumerOptions
 	scg       sarama.ConsumerGroup
-	cgHandler sarama.ConsumerGroupHandler
+	cgHandler ConsumerGroupHandler
 	qm        QueueManager
+	wg        *sync.WaitGroup
+	cancel    context.CancelFunc
 }
 
-func newConsumerGroup(o ConsumerOptions, qm QueueManager, scg sarama.ConsumerGroup, h sarama.ConsumerGroupHandler) ConsumerGroup {
+func newConsumerGroup(o ConsumerOptions, qm QueueManager, scg sarama.ConsumerGroup, h ConsumerGroupHandler) ConsumerGroup {
 	return &consumerGroup{
 		o:         o,
 		scg:       scg,
 		cgHandler: h,
+		wg:        &sync.WaitGroup{},
 		qm:        qm,
 	}
 }
 
 func (cg *consumerGroup) Consume() error {
+	if cg.cancel != nil {
+		return tracer.Trace(errors.New("you can not call to consume twice"))
+	}
+
 	// Listen to the topic and its retry topics.
 	topics := []string{cg.o.Topic}
 	topics = append(topics, cg.qm.RetryTopics()...)
+	ctx, cancel := context.WithCancel(context.Background())
+	cg.cancel = cancel
 
-	// TODO: I think this is not true and we should create a loop and consume again and again(rebalanced).
-	return tracer.Trace(cg.scg.Consume(context.Background(), topics, cg.cgHandler))
+	cg.wg.Add(1)
+	go func() {
+		defer cg.wg.Done()
+		for {
+			// `Consume` should be called inside an infinite loop, when a
+			// server-side rebalance happens, the consumer session will need to be
+			// recreated to get the new claims
+			if err := cg.scg.Consume(ctx, topics, cg.cgHandler); err != nil {
+				hlog.Error("error from kafka consumer", hlog.Err(err), hlog.ErrStack(tracer.Trace(err)))
+				time.Sleep(30 * time.Second) // Wait 30 second before next try
+			}
+			// check if context was cancelled, signaling that the consumer should stop
+			if ctx.Err() != nil {
+				return
+			}
+
+			hlog.Info("rebalance kafak consumer group", hlog.String("group", cg.o.Group))
+
+
+			// The consumerGroupHandler's "ready" channel reset by CleanUp() method on the
+			// consumerGroupHandler.
+		}
+
+	}()
+
+	// Await till the consumer has been set up
+	<-cg.cgHandler.Ready()
+	return nil
 }
 
 func (cg *consumerGroup) Close() error {
+	cg.cancel()
+	cg.wg.Wait()
 	return tracer.Trace(cg.scg.Close())
 }
 
@@ -57,6 +101,7 @@ type cgHandler struct {
 	qm           QueueManager
 	msgConverter MessageConverter
 	producer     sarama.AsyncProducer
+	ready        chan struct{}
 }
 
 type ConsumerGroupHandlerOptions struct {
@@ -67,22 +112,29 @@ type ConsumerGroupHandlerOptions struct {
 	Producer         sarama.AsyncProducer
 }
 
-func newConsumerGroupHandler(o ConsumerGroupHandlerOptions) sarama.ConsumerGroupHandler {
+func newConsumerGroupHandler(o ConsumerGroupHandlerOptions) ConsumerGroupHandler {
 	return &cgHandler{
 		o:            *o.ConsumerOptions,
 		handler:      o.Handler,
 		qm:           o.QueueManager,
 		msgConverter: o.MessageConverter,
 		producer:     o.Producer,
+		ready:        make(chan struct{}),
 	}
 }
 
 func (h *cgHandler) Setup(s sarama.ConsumerGroupSession) error {
+	close(h.ready)
 	return nil
 }
 
 func (h *cgHandler) Cleanup(s sarama.ConsumerGroupSession) error {
+	h.ready = make(chan struct{})
 	return nil
+}
+
+func (h *cgHandler) Ready() <-chan struct{} {
+	return h.ready
 }
 
 func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
@@ -164,5 +216,5 @@ func (e *emptyHandlerContext) Nack() {
 	// Do nothing.
 }
 
-var _ sarama.ConsumerGroupHandler = &cgHandler{}
+var _ ConsumerGroupHandler = &cgHandler{}
 var _ hevent.HandlerContext = &emptyHandlerContext{}

@@ -8,6 +8,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 )
 
@@ -127,18 +128,22 @@ func (r *receiver) Start() error {
 		go func(cg ConsumerGroup) {
 			defer wg.Done()
 
+			// this function is non-blocking and return after initialization
 			errs <- tracer.Trace(cg.Consume())
 		}(cg)
 	}
 
 	// wait to run all consumers
 	wg.Wait()
+
 	// return first error:
 	for i := 0; i < len(r.consumerGroups); i++ {
 		if err := <-errs; err != nil {
 			return tracer.Trace(err)
 		}
 	}
+
+	hlog.Info("Kafka consumer groups up and running...")
 
 	return nil
 }

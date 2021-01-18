@@ -11,7 +11,7 @@ import (
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
-	"github.com/kamva/hexa-event/examples/kafka_outbox_consume/hello"
+	"github.com/kamva/hexa-event/examples/kafka_outbox_with_consumer/hello"
 	"github.com/kamva/hexa-event/hafka"
 	"github.com/kamva/hexa-event/kafkabox"
 	"github.com/kamva/hexa/hexatranslator"
@@ -32,7 +32,8 @@ var version = gutil.Must(sarama.ParseKafkaVersion(Version)).(sarama.KafkaVersion
 var dbUrl = "mongodb+srv://root:12345@air.hjflq.gcp.mongodb.net/kafkalab?authSource=admin"
 
 func main() {
-	// Note: to run this example you need to run your kafka with Mongo outbox connector
+	// Note: to run this example you need to run your kafka with Mongo outbox connector.
+	// Use docker-compose in the mongo-outbox project.
 	var mode string
 	flag.StringVar(&mode, "mode", "emit", "mode can be receive or emit")
 	flag.Parse()
