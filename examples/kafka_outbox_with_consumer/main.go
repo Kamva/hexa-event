@@ -25,6 +25,7 @@ const Version = "2.3.0"
 const channel="salam"
 
 var BootstrapServers = []string{"localhost:9092"}
+const DB="kafkalab"
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var t = hexatranslator.NewEmptyDriver()
 var p = hexa.NewContextPropagator(l, t)
@@ -56,7 +57,7 @@ func emit()  {
 	gutil.PanicErr(err)
 	gutil.PanicErr(client.Connect(context.Background()))
 
-	coll := client.Database("kafkalab").Collection(kafkabox.CollectionName)
+	coll := client.Database(DB).Collection(kafkabox.CollectionName)
 
 	emitter, err := kafkabox.NewEmitter(kafkabox.EmitterOptions{
 		Outbox:            kafkabox.NewOutboxStore(coll),
@@ -74,7 +75,7 @@ func emit()  {
 func sendEvent(emitter hevent.Emitter) error {
 	hctx := hexa.NewContext(hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
-		Locale:        "en-US",
+		Locale:        "",
 		User:          hexa.NewGuest(),
 		Logger:        l,
 		Translator:    t,
@@ -84,7 +85,7 @@ func sendEvent(emitter hevent.Emitter) error {
 		Key:     "hi_key",
 		Channel: channel,
 		Payload: &hello.HelloPayload{
-			Name: "ali",
+			Name: "reza",
 			Age:  42,
 		},
 	})
