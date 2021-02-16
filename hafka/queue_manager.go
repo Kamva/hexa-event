@@ -73,10 +73,6 @@ func (qm *queueManager) RetryAfter(retriedCount int, lastRetry time.Time) time.D
 		panic("retried count can not be negative")
 	}
 
-	if retriedCount == 0 { // means this is the first time we want to retry
-		return gutil.MinDuration(qm.p.InitialInterval, qm.p.MaximumInterval)
-	}
-
 	interval := qm.p.InitialInterval * time.Duration(math.Pow(qm.p.BackoffCoefficient, float64(retriedCount)))
 	interval = lastRetry.Add(interval).Sub(time.Now())
 

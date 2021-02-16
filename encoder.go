@@ -51,6 +51,8 @@ func (m protobufEncoder) Name() string {
 }
 
 func (m protobufEncoder) Encode(v interface{}) ([]byte, error) {
+	// TODO(mehran-prs): our protobuf messages compile in both message v1 and v2 compatible way.
+	// I think we can use message v2 here.
 	pb, ok := v.(proto.Message)
 	if !ok {
 		return nil, tracer.Trace(protobufTypeErr)

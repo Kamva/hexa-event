@@ -71,7 +71,6 @@ func (cg *consumerGroup) Consume() error {
 
 			hlog.Info("rebalance kafak consumer group", hlog.String("group", cg.o.Group))
 
-
 			// The consumerGroupHandler's "ready" channel reset by CleanUp() method on the
 			// consumerGroupHandler.
 		}
@@ -113,6 +112,7 @@ type ConsumerGroupHandlerOptions struct {
 }
 
 func newConsumerGroupHandler(o ConsumerGroupHandlerOptions) ConsumerGroupHandler {
+
 	return &cgHandler{
 		o:            *o.ConsumerOptions,
 		handler:      o.Handler,
@@ -171,6 +171,8 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			hlog.Error("can not convert raw message to hexa event message", h.logMsgErr(msg, err, retryCount)...)
 
 			// retry the message
+			// TODO: maybe we don't need to retry messages that we
+			// can not convert to the hexa message.
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
 		} else if err := h.handler(newEmptyHandlerContext(), hctx, hmsg, err); err != nil {
 			// log error

@@ -134,3 +134,46 @@ func TestQueueManager_RetryAfter(t *testing.T) {
 		assert.True(t, in.Expected-time.Second <= after, "tag: %s, expected: %s, value: %s", in.Tag, in.Expected, after)
 	}
 }
+
+func TestQueueManager_RetryAfterInPast(t *testing.T) {
+	qm := newQueueManager("abc", RetryPolicy{
+		InitialInterval:    time.Second * 2,
+		MaximumInterval:    time.Second * 200,
+		BackoffCoefficient: 2,
+		MaximumAttempts:    3,
+		RetryTopicsCount:   3,
+	})
+
+	now := time.Now().Add(time.Second * -2)
+
+	l := []struct {
+		Tag        string
+		RetryCount int
+		LastRetry  time.Time
+		Expected   time.Duration
+		Panic      bool
+	}{
+		{Tag: "test.1", RetryCount: -1, Panic: true},
+		{Tag: "test.2", RetryCount: 0, LastRetry: now, Expected:0},
+		{Tag: "test.3", RetryCount: 1, LastRetry: now, Expected: time.Second * 2},
+		{Tag: "test.4", RetryCount: 2, LastRetry: now, Expected: time.Second * 6},
+		{Tag: "test.5", RetryCount: 3, LastRetry: now, Expected: time.Second * 14},
+		{Tag: "test.6", RetryCount: 4, LastRetry: now, Expected: time.Second * 30},
+		{Tag: "test.7", RetryCount: 10, LastRetry: now, Expected: time.Second * 200}, // should return maxInterval
+	}
+
+	for _, in := range l {
+		if in.Panic {
+			assert.Panics(t, func() {
+				qm.RetryAfter(in.RetryCount, in.LastRetry)
+			}, in.Tag)
+			continue
+		}
+
+		after := qm.RetryAfter(in.RetryCount, in.LastRetry)
+
+		// specified time should be equal to extended time or maximum one second less than it.
+		assert.True(t, in.Expected >= after, "tag: %s, expected: %s, value: %s", in.Tag, in.Expected, after)
+		assert.True(t, in.Expected-time.Second <= after, "tag: %s, expected: %s, value: %s", in.Tag, in.Expected, after)
+	}
+}

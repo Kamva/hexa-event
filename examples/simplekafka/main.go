@@ -18,7 +18,7 @@ import (
 
 const (
 	Version = "2.3.0"
-	topic="hi_salam"
+	topic="hi_salam2"
 )
 
 var BootstrapServers = []string{"localhost:9092"}
@@ -57,7 +57,7 @@ func main() {
 	gutil.PanicErr(err)
 	c, cancel := context.WithCancel(context.Background())
 	_ = c
-	sendEvents(c, emitter, time.Second)
+	//sendEvents(c, emitter, time.Second)
 	subscribeToEvents(receiver)
 
 	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
@@ -93,6 +93,7 @@ func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 					},
 				})
 				gutil.PanicErr(err)
+				return
 			case <-c.Done():
 				return
 			}

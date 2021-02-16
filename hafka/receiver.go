@@ -100,7 +100,7 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 	cgh := newConsumerGroupHandler(ConsumerGroupHandlerOptions{
 		ConsumerOptions:  consumerOptions,
 		QueueManager:     qm,
-		Handler:          options.Handler,
+		Handler:          hevent.RecoverMiddleware(options.Handler),
 		MessageConverter: newMessageConverter(hevent.NewRawMessageConverter(r.p, hevent.NewProtobufEncoder())),
 		Producer:         r.producer,
 	})
