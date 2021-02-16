@@ -6,21 +6,19 @@ import (
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/examples/kafka_outbox/events"
 	"github.com/kamva/hexa-event/kafkabox"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/protobuf/proto"
 )
 
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var t = hexatranslator.NewEmptyDriver()
 var p = hexa.NewContextPropagator(l, t)
-
-type HelloPayload struct {
-	Name string `json:"name"`
-}
 
 func main() {
 	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://root:12345@localhost:27017/?authSource=admin"))
@@ -32,7 +30,7 @@ func main() {
 	emitter, err := kafkabox.NewEmitter(kafkabox.EmitterOptions{
 		Outbox:            kafkabox.NewOutboxStore(coll),
 		ContextPropagator: p,
-		Encoder:           hevent.NewJsonEncoder(),
+		Encoder:           hevent.NewProtobufEncoder(),
 	})
 	gutil.PanicErr(err)
 	defer emitter.Close()
@@ -43,6 +41,15 @@ func main() {
 }
 
 func sendEvent(emitter hevent.Emitter) error {
+	m:=events.EventPayloadHi{
+		Name: "ali",
+		Age:  2000,
+		Family: "rezai",
+	}
+	var _ proto.Message=&m
+
+	var mi proto.Message=&m
+	_=mi
 	hctx := hexa.NewContext(hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
 		Locale:        "en-US",
@@ -54,8 +61,10 @@ func sendEvent(emitter hevent.Emitter) error {
 	_, err := emitter.Emit(hctx, &hevent.Event{
 		Key:     "hi_key",
 		Channel: "hi",
-		Payload: &HelloPayload{
+		Payload: &events.EventPayloadHi{
 			Name: "ali",
+			Age:  2000,
+			Family: "rezai",
 		},
 	})
 
