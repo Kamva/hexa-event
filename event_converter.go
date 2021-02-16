@@ -31,6 +31,10 @@ func NewRawMessageConverter(p hexa.ContextPropagator, e Encoder) RawMessageConve
 func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMessage, error) {
 	payload, err := m.e.Encode(event.Payload)
 
+	if err != nil {
+		return nil, tracer.Trace(err)
+	}
+
 	headers, err := m.p.Extract(ctx)
 	if err != nil {
 		return nil, tracer.Trace(err)
