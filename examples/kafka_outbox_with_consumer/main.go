@@ -73,7 +73,7 @@ func emit()  {
 }
 
 func sendEvent(emitter hevent.Emitter) error {
-	hctx := hexa.NewContext(hexa.ContextParams{
+	hctx := hexa.NewContext(nil,hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
 		Locale:        "",
 		User:          hexa.NewGuest(),

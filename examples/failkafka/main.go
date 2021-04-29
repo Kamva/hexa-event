@@ -74,7 +74,7 @@ func main() {
 }
 
 func sendEvent(c context.Context, e hevent.Emitter, interval time.Duration) {
-	hctx := hexa.NewContext(hexa.ContextParams{
+	hctx := hexa.NewContext(nil,hexa.ContextParams{
 		CorrelationId: gutil.UUID(),
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),

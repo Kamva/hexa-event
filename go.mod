@@ -7,8 +7,8 @@ require (
 	github.com/apache/pulsar-client-go v0.0.0-20200214184451-fc390a6a37f3
 	github.com/go-ozzo/ozzo-validation/v4 v4.1.0
 	github.com/golang/protobuf v1.4.2
-	github.com/kamva/gutil v0.0.0-20201228200354-f965254d674b
-	github.com/kamva/hexa v0.0.0-20210129200556-2567ce1d6e5d
+	github.com/kamva/gutil v0.0.0-20210429104414-128b9b78e4cf
+	github.com/kamva/hexa v0.0.0-20210429185558-346581114177
 	github.com/kamva/tracer v0.0.0-20201115122932-ea39052d56cd
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20201204171240-e1b590db604e // indirect
 	github.com/nats-io/nats-streaming-server v0.18.0 // indirect

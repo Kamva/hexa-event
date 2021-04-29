@@ -63,7 +63,7 @@ func main() {
 }
 
 func sendEvent(e hevent.Emitter, topic string) {
-	hctx := hexa.NewContext(hexa.ContextParams{
+	hctx := hexa.NewContext(nil,hexa.ContextParams{
 		CorrelationId: "war_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),

@@ -40,7 +40,7 @@ type HelloPayload struct {
 
 func main() {
 	emitter, receiver := bootstrap()
-	ctx := hexa.NewContext(hexa.ContextParams{
+	ctx := hexa.NewContext(nil,hexa.ContextParams{
 		CorrelationId: correlationID,
 		Locale:        "en",
 		User:          hexa.NewGuest(),

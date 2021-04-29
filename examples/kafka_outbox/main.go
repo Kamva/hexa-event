@@ -50,7 +50,7 @@ func sendEvent(emitter hevent.Emitter) error {
 
 	var mi proto.Message=&m
 	_=mi
-	hctx := hexa.NewContext(hexa.ContextParams{
+	hctx := hexa.NewContext(nil,hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
