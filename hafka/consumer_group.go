@@ -190,16 +190,15 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 }
 
 func (h *cgHandler) logMsgErr(msg *sarama.ConsumerMessage, err error, retryCount int) []hlog.Field {
-	return []hlog.Field{
+	fields := []hlog.Field{
 		hlog.String("topic", msg.Topic),
 		hlog.String("key", string(msg.Key)),
 		hlog.Int64("offset", msg.Offset),
 		hlog.Int32("partition", msg.Partition),
 		hlog.Int("retry_num", retryCount),
-		hlog.Err(err),
-		hlog.ErrStack(err),
 		hlog.String("next_topic", h.qm.NextTopic(retryCount)),
 	}
+	return append(fields, hlog.ErrFields(tracer.Trace(err))...)
 }
 
 type emptyHandlerContext struct {
