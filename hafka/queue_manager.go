@@ -27,7 +27,8 @@ type QueueManager interface {
 	// it should return "order.created.dlq".
 	NextTopic(retriedCount int) string
 
-	// If you provide a.retry.4 as topic name, it will returns 4.
+	// RetryNumberFromTopic returns the number from the retry topci.
+	// e.g., If you provide a.retry.4 as topic name, it will returns 4.
 	// for default topic name without number it will should returns 0.
 	RetryNumberFromTopic(topic string) (int, error)
 
@@ -39,15 +40,17 @@ type QueueManager interface {
 }
 
 type queueManager struct {
-	topic       string
-	retryTopics []string
-	p           RetryPolicy
+	// We use baseRetryTopic to form the retry topics.
+	// e.g, base = a => retry would be "a.retry.1",...
+	baseRetryTopic string
+	retryTopics    []string
+	p              RetryPolicy
 }
 
-func newQueueManager(topic string, p RetryPolicy) QueueManager {
+func newQueueManager(baseRetryTopic string, p RetryPolicy) QueueManager {
 	return &queueManager{
-		topic: topic,
-		p:     p,
+		baseRetryTopic: baseRetryTopic,
+		p:              p,
 	}
 }
 
@@ -58,14 +61,14 @@ func (qm *queueManager) RetryTopics() []string {
 
 	qm.retryTopics = make([]string, qm.p.RetryTopicsCount)
 	for i := 1; i <= qm.p.RetryTopicsCount; i++ {
-		qm.retryTopics[i-1] = fmt.Sprintf("%s.retry.%d", qm.topic, i)
+		qm.retryTopics[i-1] = fmt.Sprintf("%s.retry.%d", qm.baseRetryTopic, i)
 	}
 
 	return qm.retryTopics
 }
 
 func (qm *queueManager) DeadLetterQueue() string {
-	return fmt.Sprintf("%s.dlq", qm.topic)
+	return fmt.Sprintf("%s.dlq", qm.baseRetryTopic)
 }
 
 func (qm *queueManager) RetryAfter(retriedCount int, lastRetry time.Time) time.Duration {

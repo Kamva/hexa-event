@@ -98,6 +98,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
 		Topic:            topic,
+		RetryTopic:       "check_hi_message",
 		Group:            "check_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          helloHandler,

@@ -18,7 +18,7 @@ import (
 
 const (
 	Version = "2.3.0"
-	topic="hi_salam2"
+	topic   = "hi_salam2"
 )
 
 var BootstrapServers = []string{"localhost:9092"}
@@ -73,7 +73,7 @@ func main() {
 }
 
 func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: gutil.UUID(),
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
@@ -86,7 +86,7 @@ func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 			select {
 			case <-ticker.C:
 				_, err := e.Emit(hctx, &hevent.Event{
-					Key:    gutil.UUID(),
+					Key:     gutil.UUID(),
 					Channel: topic,
 					Payload: &HelloPayload{
 						Name: "ali",
@@ -108,6 +108,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
 		Topic:            topic,
+		RetryTopic:       "check_hi_message",
 		Group:            "check_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          helloHandler,

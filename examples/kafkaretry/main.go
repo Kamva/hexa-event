@@ -17,7 +17,6 @@ import (
 
 const Version = "2.3.0"
 
-
 var BootstrapServers = []string{"localhost:9092"}
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var t = hexatranslator.NewEmptyDriver()
@@ -49,7 +48,6 @@ func main() {
 	gutil.PanicErr(err)
 	defer receiver.Close()
 
-
 	sendEvent(emitter, "salam")
 	subscribeToEvents(receiver)
 
@@ -59,7 +57,7 @@ func main() {
 }
 
 func sendEvent(e hevent.Emitter, topic string) {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "salam_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
@@ -86,9 +84,10 @@ func subscribeToEvents(receiver hevent.Receiver) {
 	)
 	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
 		BootstrapServers: BootstrapServers,
-		Config: cfg,
-		Topic: "salam",
-		Group: "check_salam_message",
+		Config:           cfg,
+		Topic:            "salam",
+		RetryTopic:       "check_salam_message",
+		Group:            "check_salam_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2,

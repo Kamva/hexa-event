@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/kamva/gutil"
 	"github.com/kamva/tracer"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type (
@@ -51,13 +52,12 @@ func (m protobufEncoder) Name() string {
 }
 
 func (m protobufEncoder) Encode(v interface{}) ([]byte, error) {
-	// TODO(mehran-prs): our protobuf messages compile in both message v1 and v2 compatible way.
 	// I think we can use message v2 here.
 	pb, ok := v.(proto.Message)
 	if !ok {
 		return nil, tracer.Trace(protobufTypeErr)
 	}
-	return proto.Marshal(pb) // TODO: use protojson instead of this, so we can read raw messages.
+	return protojson.Marshal(pb)
 }
 
 func (m protobufEncoder) Decode(buf []byte, v interface{}) error {
@@ -66,7 +66,7 @@ func (m protobufEncoder) Decode(buf []byte, v interface{}) error {
 		return tracer.Trace(protobufTypeErr)
 	}
 
-	return proto.Unmarshal(buf, pb)
+	return protojson.Unmarshal(buf, pb)
 }
 
 // NewJsonEncoder returns new instance of the json encoder.

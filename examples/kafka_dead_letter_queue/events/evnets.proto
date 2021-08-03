@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package events;
+
+option go_package = "events;events";
+
+//--------------------------------
+//  events
+//--------------------------------
+// run this commend to generate (run at parent dir): protoc --proto_path=. --go_out=./  ./events/evnets.proto
+message EventPayloadHello{
+  string name = 1;
+}

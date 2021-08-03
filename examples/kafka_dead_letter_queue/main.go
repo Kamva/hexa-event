@@ -10,6 +10,7 @@ import (
 	"github.com/kamva/gutil"
 	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa-event/examples/kafka_dead_letter_queue/events"
 	"github.com/kamva/hexa-event/hafka"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
@@ -25,10 +26,6 @@ var t = hexatranslator.NewEmptyDriver()
 var p = hexa.NewContextPropagator(l, t)
 var version = gutil.Must(sarama.ParseKafkaVersion(Version)).(sarama.KafkaVersion)
 
-type HelloPayload struct {
-	Name string `json:"name"`
-}
-
 func main() {
 	cfg := hafka.NewConfig(
 		hafka.WithVersion(version),
@@ -39,7 +36,7 @@ func main() {
 	emitter, err := hafka.NewEmitter(hafka.EmitterOptions{
 		Client:            client,
 		ContextPropagator: p,
-		Encoder:           hevent.NewJsonEncoder(),
+		Encoder:           hevent.NewProtobufEncoder(),
 	})
 
 	defer emitter.Close()
@@ -63,7 +60,7 @@ func main() {
 }
 
 func sendEvent(e hevent.Emitter, topic string) {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "war_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
@@ -74,7 +71,7 @@ func sendEvent(e hevent.Emitter, topic string) {
 	_, err := e.Emit(hctx, &hevent.Event{
 		Key:     "war_key",
 		Channel: topic,
-		Payload: &HelloPayload{
+		Payload: &events.EventPayloadHello{
 			Name: "ali",
 		},
 	})
@@ -92,6 +89,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
 		Topic:            "war",
+		RetryTopic:       "check_war_message",
 		Group:            "check_war_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,
@@ -99,7 +97,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 			MaximumAttempts:    4,
 		},
 		Handler:         helloHandler,
-		PayloadInstance: &HelloPayload{},
+		PayloadInstance: &events.EventPayloadHello{},
 	}))
 	gutil.PanicErr(err)
 }
@@ -108,7 +106,7 @@ func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, 
 	gutil.PanicErr(err)
 
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*events.EventPayloadHello).Name))
 
 	return errors.New("fake error just to retry the event")
 }

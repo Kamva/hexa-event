@@ -65,7 +65,7 @@ func main() {
 }
 
 func sendEvent(e hevent.Emitter, topic string) {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "war_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
@@ -94,6 +94,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
 		Topic:            "war",
+		RetryTopic:       "check_war_message",
 		Group:            "check_war_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,
@@ -109,6 +110,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		BootstrapServers: BootstrapServers,
 		Config:           cfg,
 		Topic:            "tech",
+		RetryTopic:       "check_tech_message",
 		Group:            "check_tech_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,

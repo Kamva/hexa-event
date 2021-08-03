@@ -34,6 +34,8 @@ func (c *messageConverter) EventToOutboxMessage(ctx hexa.Context, event *hevent.
 	headers := c.headers(raw)
 	raw.Headers = nil
 
+	// message payload's type in the raw message is "[]byte" and json marshaller before marshalling the bytes,
+	// convert them to base64, so you will see your message payload as base64 in the outbox collection, if you.
 	val, err := json.Marshal(raw)
 	if err != nil {
 		return nil, tracer.Trace(err)

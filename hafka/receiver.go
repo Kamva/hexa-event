@@ -96,7 +96,7 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 		return tracer.Trace(err)
 	}
 
-	qm := newQueueManager(consumerOptions.Topic, consumerOptions.RetryPolicy)
+	qm := newQueueManager(consumerOptions.RetryTopic, consumerOptions.RetryPolicy)
 	cgh := newConsumerGroupHandler(ConsumerGroupHandlerOptions{
 		ConsumerOptions:  consumerOptions,
 		QueueManager:     qm,

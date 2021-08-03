@@ -58,7 +58,7 @@ func send() {
 		Key:     "test-key",
 	}
 
-	ctx := hexa.NewContext(nil,hexa.ContextParams{
+	ctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "test-correlation-id",
 		Locale:        "en",
 		User:          hexa.NewGuest(),

@@ -17,6 +17,7 @@ type ConsumerOptions struct {
 	BootstrapServers []string
 	Config           *sarama.Config
 	Topic            string
+	RetryTopic       string // The topic name that we push the message to retry it.
 	Group            string // consumer group name
 	RetryPolicy      RetryPolicy
 
@@ -85,6 +86,7 @@ func (o ConsumerOptions) Validate() error {
 	return validation.ValidateStruct(&o,
 		validation.Field(&o.Config, validation.Required),
 		validation.Field(&o.Topic, validation.Required),
+		validation.Field(&o.RetryTopic, validation.Required),
 		validation.Field(&o.Group, validation.Required),
 		validation.Field(&o.RetryPolicy, validation.Required),
 		validation.Field(&o.Handler, validation.Required),

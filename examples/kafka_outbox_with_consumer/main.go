@@ -22,10 +22,12 @@ import (
 )
 
 const Version = "2.3.0"
-const channel="salam"
+const channel = "salam"
 
 var BootstrapServers = []string{"localhost:9092"}
-const DB="kafkalab"
+
+const DB = "kafkalab"
+
 var l = hlog.NewPrinterDriver(hlog.DebugLevel)
 var t = hexatranslator.NewEmptyDriver()
 var p = hexa.NewContextPropagator(l, t)
@@ -39,11 +41,11 @@ func main() {
 	flag.StringVar(&mode, "mode", "emit", "mode can be receive or emit")
 	flag.Parse()
 
-	if mode!="emit" && mode!="receive"{
+	if mode != "emit" && mode != "receive" {
 		l.Error("invalid mode")
 		return
 	}
-	if mode=="emit"{
+	if mode == "emit" {
 		emit()
 		return
 	}
@@ -52,7 +54,7 @@ func main() {
 	return
 }
 
-func emit()  {
+func emit() {
 	client, err := mongo.NewClient(options.Client().ApplyURI(dbUrl))
 	gutil.PanicErr(err)
 	gutil.PanicErr(client.Connect(context.Background()))
@@ -73,7 +75,7 @@ func emit()  {
 }
 
 func sendEvent(emitter hevent.Emitter) error {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
 		Locale:        "",
 		User:          hexa.NewGuest(),
@@ -93,7 +95,7 @@ func sendEvent(emitter hevent.Emitter) error {
 	return tracer.Trace(err)
 }
 
-func receive(){
+func receive() {
 	cfg := hafka.NewConfig(
 		hafka.WithVersion(version),
 		hafka.WithInitialOffset(sarama.OffsetOldest),
@@ -121,9 +123,10 @@ func subscribeToEvents(receiver hevent.Receiver) {
 	)
 	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
 		BootstrapServers: BootstrapServers,
-		Config: cfg,
-		Topic: channel,
-		Group: "check_salam_message",
+		Config:           cfg,
+		Topic:            channel,
+		RetryTopic:       "check_salam_message",
+		Group:            "check_salam_message",
 		RetryPolicy: hafka.RetryPolicy{
 			InitialInterval:    time.Second * 10,
 			BackoffCoefficient: 2,
