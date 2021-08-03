@@ -14,6 +14,6 @@ require (
 	github.com/nats-io/nats.go v1.10.1-0.20201111151633-9e1f4a0d80d8
 	github.com/nats-io/stan.go v0.7.0
 	github.com/stretchr/testify v1.6.1
-	go.mongodb.org/mongo-driver v1.4.3
+	go.mongodb.org/mongo-driver v1.5.1
 	google.golang.org/protobuf v1.24.0
 )
