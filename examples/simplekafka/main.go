@@ -103,31 +103,29 @@ func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 
 func subscribeToEvents(receiver hevent.Receiver) {
 	cfg := hafka.NewConfigWithDefaults(version, sarama.OffsetOldest)
-	build := hafka.NewSubscriptionOptions
-	l := []*hevent.SubscriptionOptions{
-		build(hafka.ConsumerOptions{
-			BootstrapServers: BootstrapServers,
-			Config:           cfg,
-			Topic:            topic,
-			RetryTopic:       "check_hi_message",
-			Group:            "check_hi_message",
-			RetryPolicy:      hafka.DefaultRetryPolicy(),
-			Handler:          helloHandler,
-			PayloadInstance:  &HelloPayload{},
-		}),
-		build(hafka.ConsumerOptions{
-			BootstrapServers: BootstrapServers,
-			Config:           cfg,
-			Topic:            topic,
-			RetryTopic:       "say_hi_message",
-			Group:            "say_hi_message",
-			RetryPolicy:      hafka.DefaultRetryPolicy(),
-			Handler:          sayHandler,
-			PayloadInstance:  &HelloPayload{},
-		}),
-	}
+	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
+		BootstrapServers: BootstrapServers,
+		Config:           cfg,
+		Topic:            topic,
+		RetryTopic:       "check_hi_message",
+		Group:            "check_hi_message",
+		RetryPolicy:      hafka.DefaultRetryPolicy(),
+		Handler:          helloHandler,
+		PayloadInstance:  &HelloPayload{},
+	}))
+	gutil.PanicErr(err)
 
-	gutil.PanicErr(hevent.SubscribeMulti(receiver, l...))
+	err = receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
+		BootstrapServers: BootstrapServers,
+		Config:           cfg,
+		Topic:            topic,
+		RetryTopic:       "say_hi_message",
+		Group:            "say_hi_message",
+		RetryPolicy:      hafka.DefaultRetryPolicy(),
+		Handler:          sayHandler,
+		PayloadInstance:  &HelloPayload{},
+	}))
+	gutil.PanicErr(err)
 }
 
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
