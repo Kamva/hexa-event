@@ -8,6 +8,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/gutil"
 	hevent "github.com/kamva/hexa-event"
+	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
 )
 
@@ -121,4 +122,14 @@ func extractConsumerOptions(o *hevent.SubscriptionOptions) *ConsumerOptions {
 		}
 	}
 	return nil
+}
+
+func retryPolicyLogFields(r RetryPolicy) []hlog.Field {
+	return []hlog.Field{
+		hlog.Duration("retry.initial_interval", r.InitialInterval),
+		hlog.Any("retry.backoff_coefficient", r.BackoffCoefficient),
+		hlog.Duration("retry.maximum_interval", r.MaximumInterval),
+		hlog.Int("retry.maximum_attempts", r.MaximumAttempts),
+		hlog.Int("retry.retry_topics_count", r.RetryTopicsCount),
+	}
 }

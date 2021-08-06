@@ -57,7 +57,7 @@ func main() {
 	gutil.PanicErr(err)
 	c, cancel := context.WithCancel(context.Background())
 	_ = c
-	//sendEvents(c, emitter, time.Second)
+	sendEvents(c, emitter, time.Second)
 	subscribeToEvents(receiver)
 
 	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
@@ -103,18 +103,31 @@ func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 
 func subscribeToEvents(receiver hevent.Receiver) {
 	cfg := hafka.NewConfigWithDefaults(version, sarama.OffsetOldest)
+	build := hafka.NewSubscriptionOptions
+	l := []*hevent.SubscriptionOptions{
+		build(hafka.ConsumerOptions{
+			BootstrapServers: BootstrapServers,
+			Config:           cfg,
+			Topic:            topic,
+			RetryTopic:       "check_hi_message",
+			Group:            "check_hi_message",
+			RetryPolicy:      hafka.DefaultRetryPolicy(),
+			Handler:          helloHandler,
+			PayloadInstance:  &HelloPayload{},
+		}),
+		build(hafka.ConsumerOptions{
+			BootstrapServers: BootstrapServers,
+			Config:           cfg,
+			Topic:            topic,
+			RetryTopic:       "say_hi_message",
+			Group:            "say_hi_message",
+			RetryPolicy:      hafka.DefaultRetryPolicy(),
+			Handler:          sayHandler,
+			PayloadInstance:  &HelloPayload{},
+		}),
+	}
 
-	err := receiver.SubscribeWithOptions(hafka.NewSubscriptionOptions(hafka.ConsumerOptions{
-		BootstrapServers: BootstrapServers,
-		Config:           cfg,
-		Topic:            topic,
-		RetryTopic:       "check_hi_message",
-		Group:            "check_hi_message",
-		RetryPolicy:      hafka.DefaultRetryPolicy(),
-		Handler:          helloHandler,
-		PayloadInstance:  &HelloPayload{},
-	}))
-	gutil.PanicErr(err)
+	gutil.PanicErr(hevent.SubscribeMulti(receiver, l...))
 }
 
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
@@ -124,6 +137,17 @@ func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, 
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
 	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*HelloPayload).Name))
 	c.Logger().Info("Done message handing -------------")
+
+	return nil
+}
+
+func sayHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
+	gutil.PanicErr(err)
+
+	c.Logger().Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
+	c.Logger().Info("say: ctx correlation_id", hlog.String("cid", c.CorrelationID()))
+	c.Logger().Info(fmt.Sprintf("say: hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info("say: Done message handing -------------")
 
 	return nil
 }

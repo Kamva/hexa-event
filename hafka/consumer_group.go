@@ -47,6 +47,11 @@ func (cg *consumerGroup) Consume() error {
 		return tracer.Trace(errors.New("you can not call to consume twice"))
 	}
 
+	hlog.Info("consume messages from topic", append(retryPolicyLogFields(cg.o.RetryPolicy),
+		hlog.String("group", cg.o.Group),
+		hlog.String("topic", cg.o.Topic),
+	)...)
+
 	// Listen to the topic and its retry topics.
 	topics := []string{cg.o.Topic}
 	topics = append(topics, cg.qm.RetryTopics()...)
