@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -49,7 +50,7 @@ func send() {
 	gutil.PanicErr(err)
 
 	defer func() {
-		gutil.PanicErr(emitter.Close())
+		gutil.PanicErr(emitter.Shutdown(context.Background()))
 	}()
 
 	event := &hevent.Event{
@@ -86,13 +87,13 @@ func receive() {
 	gutil.PanicErr(err)
 
 	defer func() {
-		err := receiver.Close()
+		err := receiver.Shutdown(context.Background())
 		gutil.PanicErr(err)
 	}()
 
 	err = receiver.Subscribe(channelName, &HelloPayload{}, sayHello)
 	gutil.PanicErr(err)
-	err = receiver.Start()
+	err = receiver.Run()
 	gutil.PanicErr(err)
 }
 

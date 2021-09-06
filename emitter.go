@@ -12,9 +12,7 @@ type (
 		// context can be nil.
 		// dont forget to validate the event here.
 		Emit(hexa.Context, *Event) (msgID string, err error)
-
-		// Close close the connection
-		Close() error
+		hexa.Shutdownable
 	}
 
 	// Event is the event to send.

@@ -164,13 +164,13 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 	return
 }
 
-func (r *receiver) Start() error {
+func (r *receiver) Run() error {
 	return gutil.Wait(func(s os.Signal) error {
 		return nil
 	}, syscall.SIGINT, syscall.SIGTERM)
 }
 
-func (r *receiver) Close() error {
+func (r *receiver) Shutdown(_ context.Context) error {
 	defer r.nc.Close()
 	return tracer.Trace(r.sc.Close())
 }

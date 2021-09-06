@@ -33,7 +33,7 @@ func main() {
 		Encoder:           hevent.NewProtobufEncoder(),
 	})
 	gutil.PanicErr(err)
-	defer emitter.Close()
+	defer emitter.Shutdown(context.Background())
 
 	gutil.PanicErr(sendEvent(emitter))
 
@@ -41,16 +41,16 @@ func main() {
 }
 
 func sendEvent(emitter hevent.Emitter) error {
-	m:=events.EventPayloadHi{
-		Name: "ali",
-		Age:  2000,
+	m := events.EventPayloadHi{
+		Name:   "ali",
+		Age:    2000,
 		Family: "rezai",
 	}
-	var _ proto.Message=&m
+	var _ proto.Message = &m
 
-	var mi proto.Message=&m
-	_=mi
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	var mi proto.Message = &m
+	_ = mi
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "my_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
@@ -62,8 +62,8 @@ func sendEvent(emitter hevent.Emitter) error {
 		Key:     "hi_key",
 		Channel: "hi",
 		Payload: &events.EventPayloadHi{
-			Name: "ali",
-			Age:  2000,
+			Name:   "ali",
+			Age:    2000,
 			Family: "rezai",
 		},
 	})

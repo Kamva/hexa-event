@@ -1,10 +1,9 @@
-//---------------------------------------
-// Pulsar implementation of hexa events.
+// Package hexapulsar implements hexa events.
 // Pulsar driver is thread safe.
-//---------------------------------------
 package hexapulsar
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -95,7 +94,7 @@ func (e *emitter) producer(topic string) (pulsar.Producer, error) {
 	return p, tracer.Trace(err)
 }
 
-func (e *emitter) Close() error {
+func (e *emitter) Shutdown(_ context.Context) error {
 	e.l.Lock()
 	defer e.l.Unlock()
 	for _, p := range e.producers {

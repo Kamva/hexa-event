@@ -68,12 +68,12 @@ func (r *receiver) SubscribeWithOptions(so *hevent.SubscriptionOptions) error {
 	return r.subscribe(consumer, so.PayloadInstance, so.Handler)
 }
 
-func (r *receiver) Start() error {
+func (r *receiver) Run() error {
 	r.wg.Wait()
 	return nil
 }
 
-func (r *receiver) Close() error {
+func (r *receiver) Shutdown(_ context.Context) error {
 	close(r.done)
 	r.wg.Wait()
 	return nil

@@ -1,8 +1,9 @@
-// hestan (hexa stan) in implementation of Nats-streaming
+// Package hestan (hexa stan) in implementation of Nats-streaming
 // broker for hexa SDK using stan client library of NATS.
 package hestan
 
 import (
+	"context"
 	"encoding/json"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -62,7 +63,7 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err
 	return "", tracer.Trace(e.sc.Publish(event.Channel, payload))
 }
 
-func (e *emitter) Close() error {
+func (e *emitter) Shutdown(_ context.Context) error {
 	defer e.nc.Close()
 	return tracer.Trace(e.sc.Close())
 }

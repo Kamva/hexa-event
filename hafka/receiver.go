@@ -118,7 +118,7 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 	return nil
 }
 
-func (r *receiver) Start() error {
+func (r *receiver) Run() error {
 	wg := &sync.WaitGroup{}
 	errs := make(chan error, len(r.consumerGroups))
 	defer close(errs)
@@ -148,7 +148,7 @@ func (r *receiver) Start() error {
 	return nil
 }
 
-func (r *receiver) Close() error {
+func (r *receiver) Shutdown(_ context.Context) error {
 	wg := &sync.WaitGroup{}
 	errs := make(chan error, len(r.consumerGroups))
 	defer close(errs)

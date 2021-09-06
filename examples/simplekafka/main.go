@@ -44,7 +44,7 @@ func main() {
 		ContextPropagator: p,
 		Encoder:           hevent.NewJsonEncoder(),
 	})
-	defer emitter.Close()
+	defer emitter.Shutdown(context.Background())
 
 	receiver, err := hafka.NewReceiver(hafka.ReceiverOptions{
 		ContextPropagator: p,
@@ -52,7 +52,7 @@ func main() {
 	})
 
 	gutil.PanicErr(err)
-	defer receiver.Close()
+	defer receiver.Shutdown(context.Background())
 
 	gutil.PanicErr(err)
 	c, cancel := context.WithCancel(context.Background())
@@ -60,7 +60,7 @@ func main() {
 	sendEvents(c, emitter, time.Second)
 	subscribeToEvents(receiver)
 
-	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
+	gutil.PanicErr(receiver.Run()) // receiver start non-blocking
 
 	err = gutil.Wait(func(s os.Signal) error {
 		cancel()

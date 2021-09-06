@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 
@@ -146,8 +147,8 @@ func waitToClose(emitter hevent.Emitter, receiver hevent.Receiver) () {
 	go func() {
 		for range signalChan {
 			hlog.Info("\nReceived an interrupt, unsubscribing and closing connection...\n\n")
-			emitter.Close()
-			receiver.Close()
+			emitter.Shutdown(context.Background())
+			receiver.Shutdown(context.Background())
 			cleanupDone <- true
 		}
 	}()

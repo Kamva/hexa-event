@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"syscall"
@@ -39,19 +40,19 @@ func main() {
 		ContextPropagator: p,
 		Encoder:           hevent.NewJsonEncoder(),
 	})
-	defer emitter.Close()
+	defer emitter.Shutdown(context.Background())
 
 	receiver, err := hafka.NewReceiver(hafka.ReceiverOptions{
 		ContextPropagator: p,
 		Client:            client,
 	})
 	gutil.PanicErr(err)
-	defer receiver.Close()
+	defer receiver.Shutdown(context.Background())
 
 	sendEvent(emitter, "salam")
 	subscribeToEvents(receiver)
 
-	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
+	gutil.PanicErr(receiver.Run()) // receiver start non-blocking
 
 	gutil.WaitForSignals(syscall.SIGINFO, syscall.SIGTERM)
 }

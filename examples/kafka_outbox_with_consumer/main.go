@@ -67,7 +67,7 @@ func emit() {
 		Encoder:           hevent.NewProtobufEncoder(),
 	})
 	gutil.PanicErr(err)
-	defer emitter.Close()
+	defer emitter.Shutdown(context.Background())
 
 	gutil.PanicErr(sendEvent(emitter))
 
@@ -107,11 +107,11 @@ func receive() {
 		Client:            client,
 	})
 	gutil.PanicErr(err)
-	defer receiver.Close()
+	defer receiver.Shutdown(context.Background())
 
 	subscribeToEvents(receiver)
 
-	gutil.PanicErr(receiver.Start()) // receiver start non-blocking
+	gutil.PanicErr(receiver.Run()) // receiver start non-blocking
 
 	gutil.WaitForSignals(syscall.SIGINFO, syscall.SIGTERM)
 }

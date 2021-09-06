@@ -46,13 +46,8 @@ type (
 		// SubscribeWithOptions subscribe by options.
 		SubscribeWithOptions(*SubscriptionOptions) error
 
-		// Start starts receiving the messages.
-		Start() error
-
-		// Close closes the connection.
-		// You can provide options for some drivers. e.g if you are using the nats-streaming driver, you can
-		// say here that you want to close and unsubscribe or just close.
-		Close() error
+		hexa.Runnable     // to start receiving events.
+		hexa.Shutdownable // to close connections and shutdown the server.
 	}
 
 	// HandlerContext is the context that pass to the message handler.

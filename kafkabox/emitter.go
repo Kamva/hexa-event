@@ -100,8 +100,8 @@ func (e *emitter) logMessage(msg *OutboxMessage) error {
 	return nil
 }
 
-func (e *emitter) Close() error {
-	return e.outbox.Close()
+func (e *emitter) Shutdown(c context.Context) error {
+	return tracer.Trace(e.outbox.Shutdown(c))
 }
 
 var _ hevent.Emitter = &emitter{}

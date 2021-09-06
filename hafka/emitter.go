@@ -120,9 +120,8 @@ func (e *emitter) logMessage(msg *sarama.ProducerMessage) error {
 	return nil
 }
 
-func (e *emitter) Close() error {
-	e.producer.AsyncClose()
-	return nil
+func (e *emitter) Shutdown(_ context.Context) error {
+	return tracer.Trace(e.producer.Close())
 }
 
 var _ hevent.Emitter = &emitter{}
