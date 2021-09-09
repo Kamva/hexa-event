@@ -102,8 +102,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 			BackoffCoefficient: 2,
 			MaximumAttempts:    4,
 		},
-		Handler:         helloHandler,
-		PayloadInstance: &HelloPayload{},
+		Handler: helloHandler,
 	}))
 	gutil.PanicErr(err)
 
@@ -118,8 +117,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 			BackoffCoefficient: 2,
 			MaximumAttempts:    4,
 		},
-		Handler:         helloHandler,
-		PayloadInstance: &HelloPayload{},
+		Handler: helloHandler,
 	}))
 	gutil.PanicErr(err)
 }
@@ -127,8 +125,11 @@ func subscribeToEvents(receiver hevent.Receiver) {
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
+	var p HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
 
 	return errors.New("fake error just to retry the event")
 }

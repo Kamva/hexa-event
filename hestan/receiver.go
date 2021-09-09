@@ -28,7 +28,6 @@ type ReceiverOptions struct {
 	NatsCon           *nats.Conn
 	StreamingCon      stan.Conn
 	ContextPropagator hexa.ContextPropagator
-	Encoder           hevent.Encoder
 }
 
 type receiver struct {
@@ -68,11 +67,10 @@ func newHandlerCtx(msg *stan.Msg) hevent.HandlerContext {
 
 }
 
-func (r *receiver) Subscribe(channel string, p interface{}, h hevent.EventHandler) error {
+func (r *receiver) Subscribe(channel string, h hevent.EventHandler) error {
 	return r.SubscribeWithOptions(&hevent.SubscriptionOptions{
-		Channel:         channel,
-		PayloadInstance: p,
-		Handler:         h,
+		Channel: channel,
+		Handler: h,
 	})
 }
 
@@ -86,9 +84,8 @@ func (r *receiver) SubscribeWithOptions(o *hevent.SubscriptionOptions) error {
 	}
 
 	var options = &SubscriptionOptions{
-		Subject:         o.Channel,
-		Handler:         o.Handler,
-		PayloadInstance: o.PayloadInstance,
+		Subject: o.Channel,
+		Handler: o.Handler,
 	}
 
 	// If provided native nats-streaming options, we
@@ -103,7 +100,7 @@ func (r *receiver) SubscribeWithOptions(o *hevent.SubscriptionOptions) error {
 }
 
 func (r *receiver) subscribe(o *SubscriptionOptions) error {
-	h := r.handler(o.PayloadInstance, o.Handler)
+	h := r.handler(o.Handler)
 	opts := o.Opts
 	if o.Position != nil {
 		opts = append(opts, o.Position)
@@ -131,10 +128,10 @@ func (r *receiver) subscribe(o *SubscriptionOptions) error {
 	return nil
 }
 
-func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler {
+func (r *receiver) handler(h hevent.EventHandler) stan.MsgHandler {
 	return func(msg *stan.Msg) {
 		hlog.Debug("received event", hlog.String("subject", msg.Subject), hlog.String("msg", string(msg.Data)))
-		ctx, m, err := r.extractMessage(msg.Data, p)
+		ctx, m, err := r.extractMessage(msg.Data)
 		// Note: we do not send ack or
 		if err := h(newHandlerCtx(msg), ctx, m, tracer.Trace(err)); err != nil {
 			ctx.Logger().Error("error on handling event",
@@ -146,7 +143,7 @@ func (r *receiver) handler(p interface{}, h hevent.EventHandler) stan.MsgHandler
 	}
 }
 
-func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx hexa.Context, m hevent.Message, err error) {
+func (r *receiver) extractMessage(msg []byte) (ctx hexa.Context, m hevent.Message, err error) {
 	rawMsg := hevent.RawMessage{}
 	err = json.Unmarshal(msg, &rawMsg)
 	if err != nil {
@@ -160,7 +157,7 @@ func (r *receiver) extractMessage(msg []byte, payloadInstance interface{}) (ctx 
 		return
 	}
 
-	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, payloadInstance)
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg)
 	return
 }
 
@@ -179,10 +176,11 @@ func (r *receiver) Shutdown(_ context.Context) error {
 // using nats-streaming driver.
 func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 	return &receiver{
-		p:            o.ContextPropagator,
-		nc:           o.NatsCon,
-		sc:           o.StreamingCon,
-		msgConverter: hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder),
+		p:  o.ContextPropagator,
+		nc: o.NatsCon,
+		sc: o.StreamingCon,
+		// RawMessageConverter's `encoder` param will not be used for decoding, so we set it's value to nil.
+		msgConverter: hevent.NewRawMessageConverter(o.ContextPropagator, nil),
 	}, o.Validate()
 }
 

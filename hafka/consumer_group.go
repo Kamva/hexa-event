@@ -47,7 +47,7 @@ func (cg *consumerGroup) Consume() error {
 		return tracer.Trace(errors.New("you can not call to consume twice"))
 	}
 
-	hlog.Info("consume messages from topic", append(retryPolicyLogFields(cg.o.RetryPolicy),
+	hlog.Info("listening to the topic", append(retryPolicyLogFields(cg.o.RetryPolicy),
 		hlog.String("group", cg.o.Group),
 		hlog.String("topic", cg.o.Topic),
 	)...)
@@ -170,7 +170,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			}
 		}
 
-		hctx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg, h.o.PayloadInstance)
+		hctx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg)
 
 		if err != nil {
 			hlog.Error("can not convert raw message to hexa event message", h.logMsgErr(msg, err, retryCount)...)

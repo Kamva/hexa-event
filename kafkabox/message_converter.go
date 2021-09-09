@@ -1,7 +1,6 @@
 package kafkabox
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/kamva/gutil"
@@ -30,23 +29,16 @@ func (c *messageConverter) EventToOutboxMessage(ctx hexa.Context, event *hevent.
 		return nil, tracer.Trace(err)
 	}
 
-	// Move headers from raw message to the native kafka message headers.
-	headers := c.headers(raw)
-	raw.Headers = nil
-
-	// message payload's type in the raw message is "[]byte" and json marshaller before marshalling the bytes,
-	// convert them to base64, so you will see your message payload as base64 in the outbox collection, if you.
-	val, err := json.Marshal(raw)
-	if err != nil {
-		return nil, tracer.Trace(err)
-	}
+	// Currently the RawMessage type has two `Headers` and `Payload` fields, we store each field
+	// as an outbox model's field in our DB. If later RawMessage added another field, we can add
+	// extra fields as a header.
 
 	return &OutboxMessage{
 		ID:        gutil.UUID(),
 		Topic:     event.Channel,
 		Key:       event.Key,
-		Value:     string(val),
-		Headers:   headers,
+		Value:     string(raw.Payload),
+		Headers:   c.headers(raw),
 		EmittedAt: time.Now(),
 	}, nil
 }

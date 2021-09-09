@@ -18,7 +18,7 @@ import (
 
 const (
 	Version = "2.3.0"
-	topic="hi_salam"
+	topic   = "hi_salam"
 )
 
 var BootstrapServers = []string{"localhost:9092"}
@@ -58,7 +58,7 @@ func main() {
 	gutil.PanicErr(err)
 	c, cancel := context.WithCancel(context.Background())
 	_ = c
-	//sendEvent(c, emitter, time.Second)
+	sendEvent(c, emitter, time.Second)
 	subscribeToEvents(receiver)
 
 	gutil.PanicErr(receiver.Run()) // receiver start non-blocking
@@ -74,15 +74,15 @@ func main() {
 }
 
 func sendEvent(c context.Context, e hevent.Emitter, interval time.Duration) {
-	hctx := hexa.NewContext(nil,hexa.ContextParams{
+	hctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: gutil.UUID(),
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
 		Logger:        l,
 		Translator:    t,
 	})
-	_,err:=e.Emit(hctx, &hevent.Event{
-		Key:    gutil.UUID(),
+	_, err := e.Emit(hctx, &hevent.Event{
+		Key:     gutil.UUID(),
 		Channel: topic,
 		Payload: &HelloPayload{
 			Name: "ali",
@@ -102,7 +102,6 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		Group:            "check_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          helloHandler,
-		PayloadInstance:  &HelloPayload{},
 	}))
 	gutil.PanicErr(err)
 }
@@ -110,9 +109,12 @@ func subscribeToEvents(receiver hevent.Receiver) {
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
+	var p HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	c.Logger().Info("msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
 	c.Logger().Info("Done message handing -------------")
 	os.Exit(0)
 	return nil

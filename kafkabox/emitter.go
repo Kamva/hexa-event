@@ -93,7 +93,6 @@ func (e *emitter) logMessage(msg *OutboxMessage) error {
 	hlog.Debug("emitting kafka event",
 		hlog.String("topic", msg.Topic),
 		hlog.String("key", msg.Key),
-		hlog.String("value", msg.Value),
 		hlog.Any("headers", msg.Headers),
 	)
 

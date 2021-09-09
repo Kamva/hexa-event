@@ -46,13 +46,13 @@ func (h *handlerContext) Nack() {
 // Subscribe on the pulsar driver will use consumerOptionsGenerator to generate consumerOptions,
 // so check it to know what will be default values of the pulsar subscription name and subscription
 // type.
-func (r *receiver) Subscribe(channel string, payloadInstance interface{}, h hevent.EventHandler) error {
-	consumer, err := r.consumer(hevent.NewSubscriptionOptions(channel, payloadInstance, h))
+func (r *receiver) Subscribe(channel string, h hevent.EventHandler) error {
+	consumer, err := r.consumer(hevent.NewSubscriptionOptions(channel, h))
 	if err != nil {
 		return tracer.Trace(err)
 	}
 
-	return r.subscribe(consumer, payloadInstance, h)
+	return r.subscribe(consumer, h)
 }
 
 func (r *receiver) SubscribeWithOptions(so *hevent.SubscriptionOptions) error {
@@ -65,7 +65,7 @@ func (r *receiver) SubscribeWithOptions(so *hevent.SubscriptionOptions) error {
 		return tracer.Trace(err)
 	}
 
-	return r.subscribe(consumer, so.PayloadInstance, so.Handler)
+	return r.subscribe(consumer, so.Handler)
 }
 
 func (r *receiver) Run() error {
@@ -79,10 +79,10 @@ func (r *receiver) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func (r *receiver) subscribe(consumer pulsar.Consumer, pi interface{}, h hevent.EventHandler) error {
+func (r *receiver) subscribe(consumer pulsar.Consumer, h hevent.EventHandler) error {
 	r.wg.Add(1)
 	go receive(consumer, r.wg, r.done, func(msg pulsar.ConsumerMessage) {
-		ctx, message, err := r.extractMessage(msg, pi)
+		ctx, message, err := r.extractMessage(msg)
 		// Note: we just log the handler error, if you want to send nack,
 		// you should call to the Nack method.
 		if err := h(newHandlerCtx(msg), ctx, message, err); err != nil {
@@ -108,7 +108,7 @@ func (r *receiver) consumer(so *hevent.SubscriptionOptions) (pulsar.Consumer, er
 	return r.client.Subscribe(options)
 }
 
-func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance interface{}) (ctx hexa.Context, m hevent.Message, err error) {
+func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx hexa.Context, m hevent.Message, err error) {
 	rawMsg := hevent.RawMessage{}
 	err = json.Unmarshal(msg.Message.Payload(), &rawMsg)
 	if err != nil {
@@ -122,7 +122,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage, payloadInstance in
 		return
 	}
 
-	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, payloadInstance)
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg)
 	return
 }
 
@@ -153,7 +153,6 @@ func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
 type ReceiverOptions struct {
 	Client            pulsar.Client
 	ContextPropagator hexa.ContextPropagator
-	Encoder           hevent.Encoder
 }
 
 // NewReceiver returns new instance of pulsar implementation of the hexa event receiver.
@@ -169,7 +168,7 @@ func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 		consumers:                make([]pulsar.Consumer, 0),
 		wg:                       &sync.WaitGroup{},
 		done:                     make(chan bool),
-		msgConverter:             hevent.NewRawMessageConverter(o.ContextPropagator, o.Encoder),
+		msgConverter:             hevent.NewRawMessageConverter(o.ContextPropagator, nil),
 	}, nil
 }
 

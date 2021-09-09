@@ -23,7 +23,6 @@ type ConsumerOptions struct {
 	RetryPolicy      RetryPolicy
 
 	Handler         hevent.EventHandler
-	PayloadInstance interface{}
 }
 
 // RetryPolicy defines the retry policy.
@@ -91,7 +90,6 @@ func (o ConsumerOptions) Validate() error {
 		validation.Field(&o.Group, validation.Required),
 		validation.Field(&o.RetryPolicy, validation.Required),
 		validation.Field(&o.Handler, validation.Required),
-		validation.Field(&o.PayloadInstance, validation.Required),
 	)
 }
 
@@ -107,7 +105,6 @@ func mergeWithDefaultConsumerOptions(o ConsumerOptions) ConsumerOptions {
 func NewSubscriptionOptions(o ConsumerOptions) *hevent.SubscriptionOptions {
 	so := &hevent.SubscriptionOptions{
 		Channel:         o.Topic,
-		PayloadInstance: o.PayloadInstance,
 		Handler:         o.Handler,
 	}
 

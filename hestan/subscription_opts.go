@@ -13,13 +13,11 @@ type SubscriptionOptions struct {
 	Opts     []stan.SubscriptionOption
 
 	Handler         hevent.EventHandler
-	PayloadInstance interface{}
 }
 
 func NewSubscriptionOptions(o SubscriptionOptions) *hevent.SubscriptionOptions {
 	so := &hevent.SubscriptionOptions{
 		Channel:         o.Subject,
-		PayloadInstance: o.PayloadInstance,
 		Handler:         o.Handler,
 	}
 	return so.WithExtra(o)

@@ -2,7 +2,6 @@ package hafka
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/Shopify/sarama"
 	"github.com/kamva/hexa"
@@ -12,7 +11,7 @@ import (
 
 type MessageConverter interface {
 	EventToProducerMessage(hexa.Context, *hevent.Event) (*sarama.ProducerMessage, error)
-	ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage, payloadInstance interface{}) (hexa.Context, hevent.Message, error)
+	ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (hexa.Context, hevent.Message, error)
 	ConsumerToProducerMessage(newTopic string, msg *sarama.ConsumerMessage) *sarama.ProducerMessage
 }
 
@@ -32,31 +31,22 @@ func (c *messageConverter) EventToProducerMessage(ctx hexa.Context, event *heven
 		return nil, tracer.Trace(err)
 	}
 
-	// Move headers from raw message to the native kafka message headers.
-	headers := c.KafkaMessageHeaders(raw)
-	raw.Headers = nil
-
-	val, err := json.Marshal(raw)
-	if err != nil {
-		return nil, tracer.Trace(err)
-	}
+	// Currently we Just put the raw message's headers and payload in our events, if later raw message
+	// had another fields we should put the new fields in header before emitting the event.
 
 	return &sarama.ProducerMessage{
 		Topic:   event.Channel,
 		Key:     sarama.StringEncoder(event.Key),
-		Value:   sarama.ByteEncoder(val),
-		Headers: headers,
+		Value:   sarama.ByteEncoder(raw.Payload),
+		Headers: c.KafkaMessageHeaders(raw),
 	}, nil
 }
 
-func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage, payloadInstance interface{}) (ctx hexa.Context, emsg hevent.Message, err error) {
-	rawMsg := hevent.RawMessage{}
-	err = json.Unmarshal(msg.Value, &rawMsg)
-	if err != nil {
-		err = tracer.Trace(err)
-		return
+func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (ctx hexa.Context, emsg hevent.Message, err error) {
+	rawMsg := hevent.RawMessage{
+		Headers: c.RawMessageHeaders(msg.Headers),
+		Payload: msg.Value,
 	}
-	rawMsg.Headers = c.RawMessageHeaders(msg.Headers)
 
 	// validate the message
 	if err = rawMsg.Validate(); err != nil {
@@ -64,7 +54,7 @@ func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMes
 		return
 	}
 
-	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg, payloadInstance)
+	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg)
 }
 
 func (c *messageConverter) ConsumerToProducerMessage(newTopic string, msg *sarama.ConsumerMessage) *sarama.ProducerMessage {
@@ -90,7 +80,8 @@ func (c *messageConverter) KafkaMessageHeaders(raw *hevent.RawMessage) []sarama.
 	return headers
 }
 
-// KafkaMessageHeaders converts hevent raw headers to sarama message headers.
+// KafkaMessageHeadersFromConsumerHeaders converts received kafka message's headers to sarama
+//  message headers needed by producer.
 func (c *messageConverter) KafkaMessageHeadersFromConsumerHeaders(l []*sarama.RecordHeader) []sarama.RecordHeader {
 	headers := make([]sarama.RecordHeader, len(l))
 	for i, v := range l {

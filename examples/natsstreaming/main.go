@@ -41,7 +41,7 @@ type HelloPayload struct {
 
 func main() {
 	emitter, receiver := bootstrap()
-	ctx := hexa.NewContext(nil,hexa.ContextParams{
+	ctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: correlationID,
 		Locale:        "en",
 		User:          hexa.NewGuest(),
@@ -118,23 +118,26 @@ func emit(ctx hexa.Context, emitter hevent.Emitter) {
 }
 
 func receive(receiver hevent.Receiver) {
-	gutil.PanicErr(receiver.Subscribe(channel, &HelloPayload{}, handler))
+	gutil.PanicErr(receiver.Subscribe(channel, handler))
 	o := hestan.SubscriptionOptions{
-		Subject:         anotherChannel,
-		Group:           "group-1",
-		Durable:         "my-durable",
-		Position:        stan.DeliverAllAvailable(),
-		Handler:         handler,
-		PayloadInstance: &HelloPayload{},
+		Subject:  anotherChannel,
+		Group:    "group-1",
+		Durable:  "my-durable",
+		Position: stan.DeliverAllAvailable(),
+		Handler:  handler,
 	}
 	gutil.PanicErr(receiver.SubscribeWithOptions(hestan.NewSubscriptionOptions(o)))
 }
 
 func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
+
+	var p HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	hlog.Info("correlation_id", hlog.String("correlation_id", ctx.CorrelationID()))
 	hlog.Info("reply_channel", hlog.String("reply_channel", msg.ReplyChannel))
-	hlog.Info("payload", hlog.String("payload", msg.Payload.(*HelloPayload).Hello))
+	hlog.Info("payload", hlog.String("payload", p.Hello))
 	return err
 }
 

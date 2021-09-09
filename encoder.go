@@ -1,35 +1,47 @@
 package hevent
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 
-	"github.com/kamva/gutil"
 	"github.com/kamva/tracer"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-type (
-	// Encoder encode and decode the event payload.
-	Encoder interface {
-		// Return the Encoder name.
-		Name() string
-		Encode(interface{}) ([]byte, error)
-		Decode([]byte, interface{}) error
-	}
+// Encoder encode and decode the event payload.
+type Encoder interface {
+	// Name returns the Encoder name.
+	Name() string
+	Encode(interface{}) ([]byte, error)
+	Decoder([]byte) Decoder
+}
 
-	// protobufEncoder is protobuf implementation of the Encoder
-	protobufEncoder struct{}
+// Decoder is event payload decoder.
+type Decoder interface {
+	// Decode decodes payload to the provided value.
+	Decode(val interface{}) error
+}
 
-	// jsonEncoder is json implementation of the Encoder.
-	jsonEncoder struct{}
-)
+// protobufEncoder is protobuf implementation of the Encoder
+type protobufEncoder struct{}
+type protobufDecoder struct {
+	b []byte
+}
+
+// jsonEncoder is json implementation of the Encoder.
+type jsonEncoder struct{}
 
 const (
 	jsonEncoderName     = "json"
 	protobufEncoderName = "protobuf"
 )
+
+var encoders = map[string]Encoder{
+	jsonEncoderName:     NewJsonEncoder(),
+	protobufEncoderName: NewProtobufEncoder(),
+}
 
 var (
 	protobufTypeErr = errors.New("the provided value is not protobuf message")
@@ -43,8 +55,8 @@ func (m jsonEncoder) Encode(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (m jsonEncoder) Decode(buf []byte, v interface{}) error {
-	return json.Unmarshal(buf, v)
+func (m jsonEncoder) Decoder(buf []byte) Decoder {
+	return json.NewDecoder(bytes.NewReader(buf))
 }
 
 func (m protobufEncoder) Name() string {
@@ -60,13 +72,12 @@ func (m protobufEncoder) Encode(v interface{}) ([]byte, error) {
 	return protojson.Marshal(pb)
 }
 
-func (m protobufEncoder) Decode(buf []byte, v interface{}) error {
-	pb, ok := v.(proto.Message)
-	if !ok {
-		return tracer.Trace(protobufTypeErr)
-	}
+func (m protobufEncoder) Decoder(buf []byte) Decoder {
+	return &protobufDecoder{b: buf}
+}
 
-	return protojson.Unmarshal(buf, pb)
+func (p *protobufDecoder) Decode(val interface{}) error {
+	return protojson.Unmarshal(p.b, val.(proto.Message))
 }
 
 // NewJsonEncoder returns new instance of the json encoder.
@@ -79,28 +90,6 @@ func NewProtobufEncoder() Encoder {
 	return &protobufEncoder{}
 }
 
-// NewEncoderByName returns new instance of encoder by its name
-func NewEncoderByName(name string) Encoder {
-	switch name {
-	case protobufEncoderName:
-		return NewProtobufEncoder()
-	default:
-		return NewJsonEncoder()
-	}
-}
-
-// DecodePayloadByInstance get the payload and decode it.
-func DecodePayloadByInstance(payload []byte, encoderName string, payloadInstance interface{}) (interface{}, error) {
-	ecoder := NewEncoderByName(encoderName)
-
-	v, err := gutil.ValuePtr(payloadInstance)
-	if err != nil {
-		return nil, tracer.Trace(err)
-	}
-
-	err = ecoder.Decode(payload, v)
-	return v, err
-}
-
 var _ Encoder = jsonEncoder{}
 var _ Encoder = protobufEncoder{}
+var _ Decoder = &protobufDecoder{}

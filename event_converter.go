@@ -2,18 +2,20 @@ package hevent
 
 import (
 	"context"
+	"errors"
 
 	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
 )
 
 const (
-	ReplyChannelHeaderKey = "_reply_channel"
+	HeaderKeyReplyChannel   = "_reply_channel"
+	HeaderKeyPayloadEncoder = "_payload_encoder" // the message body.
 )
 
 type RawMessageConverter interface {
 	EventToRaw(c hexa.Context, e *Event) (*RawMessage, error)
-	RawMsgToMessage(c context.Context, raw *RawMessage, payloadInstance interface{}) (hexa.Context, Message, error)
+	RawMsgToMessage(c context.Context, raw *RawMessage) (hexa.Context, Message, error)
 }
 
 type rawMessageConverter struct {
@@ -40,16 +42,16 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 		return nil, tracer.Trace(err)
 	}
 
-	headers[ReplyChannelHeaderKey] = []byte(event.ReplyChannel)
+	headers[HeaderKeyReplyChannel] = []byte(event.ReplyChannel)
+	headers[HeaderKeyPayloadEncoder] = []byte(m.e.Name())
 
 	return &RawMessage{
 		Headers: headers,
-		Encoder: m.e.Name(),
 		Payload: payload,
 	}, err
 }
 
-func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage, payloadInstance interface{}) (
+func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage) (
 	ctx hexa.Context, msg Message, err error) {
 
 	c, err = m.p.Inject(rawMsg.Headers, c)
@@ -59,15 +61,18 @@ func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMess
 	}
 
 	ctx = hexa.MustNewContextFromRawContext(c)
-
-	var p interface{}
-	p, err = DecodePayloadByInstance(rawMsg.Payload, rawMsg.Encoder, payloadInstance)
+	encoderName := string(rawMsg.Headers[HeaderKeyPayloadEncoder])
+	encoder, ok := encoders[encoderName]
+	if !ok {
+		err = errors.New("can not find message payload's encoder/decoder")
+		return
+	}
 
 	msg = Message{
 		Headers:       rawMsg.Headers,
 		CorrelationId: ctx.CorrelationID(),
-		ReplyChannel:  string(rawMsg.Headers[ReplyChannelHeaderKey]),
-		Payload:       p,
+		ReplyChannel:  string(rawMsg.Headers[HeaderKeyReplyChannel]),
+		Payload:       encoder.Decoder(rawMsg.Payload),
 	}
 	return
 }

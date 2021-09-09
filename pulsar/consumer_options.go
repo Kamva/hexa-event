@@ -3,9 +3,10 @@ package hexapulsar
 import (
 	"errors"
 	"fmt"
+
+	"github.com/apache/pulsar-client-go/pulsar"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/tracer"
-	"github.com/apache/pulsar-client-go/pulsar"
 )
 
 // SubscriptionNameError is the error to specify both subscription_name and the topic_name is empty.
@@ -103,7 +104,7 @@ func (g consumerOptionsGenerator) setOptionValues(o generateOptions) (pulsar.Con
 	return consumerOptions, nil
 }
 
-// subscribeOptionsBuilder is a builder to build subscription options
+// SubscribeOptionsBuilder is a builder to build subscription options
 // according to the pulsar options.
 type SubscribeOptionsBuilder struct {
 	formatter TopicFormatter
@@ -112,8 +113,8 @@ type SubscribeOptionsBuilder struct {
 }
 
 // NewSubscribeOptionsBuilder returns new instance of the SubscriptionOptionsBuilderW.
-func NewSubscribeOptionsBuilder(ch string, payloadInstance interface{}, h hevent.EventHandler) *SubscribeOptionsBuilder {
-	return &SubscribeOptionsBuilder{so: hevent.NewSubscriptionOptions(ch, payloadInstance, h)}
+func NewSubscribeOptionsBuilder(ch string, h hevent.EventHandler) *SubscribeOptionsBuilder {
+	return &SubscribeOptionsBuilder{so: hevent.NewSubscriptionOptions(ch, h)}
 }
 
 // WithFormatter sets the formatter.
@@ -152,7 +153,6 @@ type PulsarSubscribeOptions struct {
 	SubscriptionName string
 	Formatter        string
 	Channel          string
-	PayloadInstance  interface{}
 	Handler          hevent.EventHandler
 	Type             pulsar.SubscriptionType
 }
@@ -160,7 +160,7 @@ type PulsarSubscribeOptions struct {
 // NewSubscriptionFromPulsarOptions returns new instance of the SubscriptionOptions from the
 // pulsar options.
 func NewSubscriptionFromPulsarOptions(o PulsarSubscribeOptions) *hevent.SubscriptionOptions {
-	return NewSubscribeOptionsBuilder(o.Channel, o.PayloadInstance, o.Handler).
+	return NewSubscribeOptionsBuilder(o.Channel, o.Handler).
 		WithFormatter(o.Formatter).
 		WithSubscriptionName(o.SubscriptionName).
 		WithType(o.Type).

@@ -59,7 +59,7 @@ func send() {
 		Key:     "test-key",
 	}
 
-	ctx := hexa.NewContext(nil,hexa.ContextParams{
+	ctx := hexa.NewContext(nil, hexa.ContextParams{
 		CorrelationId: "test-correlation-id",
 		Locale:        "en",
 		User:          hexa.NewGuest(),
@@ -82,7 +82,6 @@ func receive() {
 	receiver, err := hexapulsar.NewReceiver(hexapulsar.ReceiverOptions{
 		Client:            client,
 		ContextPropagator: p,
-		Encoder:           hevent.NewJsonEncoder(),
 	})
 	gutil.PanicErr(err)
 
@@ -95,7 +94,6 @@ func receive() {
 		SubscriptionName: "hexa-example",
 		Formatter:        format,
 		Channel:          channelName,
-		PayloadInstance:  &HelloPayload{},
 		Handler:          sayHello,
 		Type:             pulsar.Exclusive,
 	}))
@@ -109,7 +107,8 @@ func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err er
 	gutil.PanicErr(err)
 	fmt.Println("running hello handler.")
 	fmt.Println(m.Headers)
-	p := m.Payload.(*HelloPayload)
+	var p HelloPayload
+	gutil.PanicErr(m.Payload.Decode(&p))
 	fmt.Println(p.Hello)
 	fmt.Println(c.User().Type())
 	hc.Ack()

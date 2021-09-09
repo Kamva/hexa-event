@@ -111,7 +111,6 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		Group:            "check_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          helloHandler,
-		PayloadInstance:  &HelloPayload{},
 	}))
 	gutil.PanicErr(err)
 
@@ -123,7 +122,6 @@ func subscribeToEvents(receiver hevent.Receiver) {
 		Group:            "say_hi_message",
 		RetryPolicy:      hafka.DefaultRetryPolicy(),
 		Handler:          sayHandler,
-		PayloadInstance:  &HelloPayload{},
 	}))
 	gutil.PanicErr(err)
 }
@@ -131,9 +129,12 @@ func subscribeToEvents(receiver hevent.Receiver) {
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
+	var p HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	c.Logger().Info("msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
 	c.Logger().Info("Done message handing -------------")
 
 	return nil
@@ -142,9 +143,12 @@ func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, 
 func sayHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
+	var p HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	c.Logger().Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
 	c.Logger().Info("say: ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("say: hi %s", msg.Payload.(*HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("say: hi %s", p.Name))
 	c.Logger().Info("say: Done message handing -------------")
 
 	return nil

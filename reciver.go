@@ -8,81 +8,76 @@ import (
 	"github.com/kamva/tracer"
 )
 
-type (
-	// SubscriptionOptions contains options to subscribe to one or multiple channels.
-	SubscriptionOptions struct {
-		// Channel specify the channel name you will subscribe on.
-		// Either Channel,Channels or ChannelsPattern are required when subscribing.
-		Channel string
+// SubscriptionOptions contains options to subscribe to one or multiple channels.
+type SubscriptionOptions struct {
+	// Channel specify the channel name you will subscribe on.
+	// Either Channel,Channels or ChannelsPattern are required when subscribing.
+	Channel string
 
-		// Channels contains name of channels which we want to subscribe.
-		// Either Channel,Channels or ChannelsPattern are required when subscribing.
-		Channels []string
+	// Channels contains name of channels which we want to subscribe.
+	// Either Channel,Channels or ChannelsPattern are required when subscribing.
+	Channels []string
 
-		// ChannelsPattern is the pattern you will use to subscribe on all channels
-		// which match with this pattern.
-		// Either Channel,Channels or ChannelsPattern are required when subscribing.
-		ChannelsPattern string
+	// ChannelsPattern is the pattern you will use to subscribe on all channels
+	// which match with this pattern.
+	// Either Channel,Channels or ChannelsPattern are required when subscribing.
+	ChannelsPattern string
 
-		// PayloadInstance is the instance of event payload.
-		PayloadInstance interface{}
+	// Handler is the event handler.
+	Handler EventHandler
 
-		// Handler is the event handler.
-		Handler EventHandler
+	// extra contains extra details for specific drivers(e.g for pulsar you can set extra consumer options here).
+	extra []interface{}
+}
 
-		// extra contains extra details for specific drivers(e.g for pulsar you can set extra consumer options here).
-		extra []interface{}
-	}
+// EventHandler handle events.
+// pulsar and hestan implementations just log returned error, in kafka
+// if you return error, it will push event to the retry or DLQ topic.
+type EventHandler func(HandlerContext, hexa.Context, Message, error) error
 
-	// EventHandler handle events.
-	// pulsar and hestan implementations just log returned error, in kafka
-	// if you return error, it will push event to the retry or DLQ topic.
-	EventHandler func(HandlerContext, hexa.Context, Message, error) error
+type Receiver interface {
+	// Subscribe subscribe to the provided channel
+	Subscribe(channel string, h EventHandler) error
 
-	Receiver interface {
-		// Subscribe subscribe to the provided channel
-		Subscribe(channel string, payloadInstance interface{}, h EventHandler) error
+	// SubscribeWithOptions subscribe by options.
+	SubscribeWithOptions(*SubscriptionOptions) error
 
-		// SubscribeWithOptions subscribe by options.
-		SubscribeWithOptions(*SubscriptionOptions) error
+	hexa.Runnable     // to start receiving events.
+	hexa.Shutdownable // to close connections and shutdown the server.
+}
 
-		hexa.Runnable     // to start receiving events.
-		hexa.Shutdownable // to close connections and shutdown the server.
-	}
+// HandlerContext is the context that pass to the message handler.
+type HandlerContext interface {
+	context.Context
+	// Ack get the message and send ack.
+	Ack()
+	// Nack gets the message and send negative ack.
+	Nack()
+}
 
-	// HandlerContext is the context that pass to the message handler.
-	HandlerContext interface {
-		context.Context
-		// Ack get the message and send ack.
-		Ack()
-		// Ack get the message and send negative ack.
-		Nack()
-	}
+// RawMessage is the message sent by emitter,
+// we will convert RawMessage to message and then
+// pass it to the event handler.
+// Note: Some event drivers (kafkabox & hafka) do
+// not push the marshaled RawMessage as the event
+// value, they send RawMessage's headers in the headers
+// section and RawMessage's payload in the
+// Payload section of the event, so if you want to define
+// extra fields in addition to Headers and Payload in
+// the RawMessage, please be careful.
+type RawMessage struct {
+	Headers map[string][]byte `json:"header,omitempty"`
+	Payload []byte            `json:"payload"`
+}
 
-	// RawMessage is the message sent by emitter,
-	// we will convert RawMessage to message and then
-	// pass it to the event handler.
-	RawMessage struct {
-		Headers map[string][]byte `json:"header,omitempty"`
+// Message is the message that provide to event handler.
+type Message struct {
+	Headers map[string][]byte
 
-		// Encoder is the encoder name to use its decoder.
-		Encoder string `json:"encoder"`
-
-		Payload []byte `json:"payload"` // encoded data.
-	}
-
-	// Message is the message that provide to event handler.
-	Message struct {
-		Headers map[string][]byte
-
-		CorrelationId string
-		ReplyChannel  string
-
-		// type of payload is same as provided payload
-		// instance that provide on subscription.
-		Payload interface{}
-	}
-)
+	CorrelationId string
+	ReplyChannel  string
+	Payload       Decoder
+}
 
 func (so *SubscriptionOptions) Validate() error {
 	err := validation.ValidateStruct(so,
@@ -119,15 +114,13 @@ func (m Message) Validate() error { // TODO: I think we should remove this metho
 func (e RawMessage) Validate() error {
 	return validation.ValidateStruct(&e,
 		validation.Field(&e.Headers, validation.Required),
-		validation.Field(&e.Encoder, validation.Required),
 	)
 }
 
 // NewSubscriptionOptions returns new instance of the subscription options.
-func NewSubscriptionOptions(channel string, payloadInstance interface{}, handler EventHandler) *SubscriptionOptions {
+func NewSubscriptionOptions(channel string, handler EventHandler) *SubscriptionOptions {
 	return &SubscriptionOptions{
 		Channel:         channel,
-		PayloadInstance: payloadInstance,
 		Handler:         handler,
 	}
 }

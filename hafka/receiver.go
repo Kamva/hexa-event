@@ -69,11 +69,10 @@ func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 	}, nil
 }
 
-func (r *receiver) Subscribe(channel string, payloadInstance interface{}, h hevent.EventHandler) error {
+func (r *receiver) Subscribe(channel string, h hevent.EventHandler) error {
 	return r.SubscribeWithOptions(&hevent.SubscriptionOptions{
-		Channel:         channel,
-		PayloadInstance: payloadInstance,
-		Handler:         h,
+		Channel: channel,
+		Handler: h,
 	})
 }
 
@@ -89,7 +88,6 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 
 	// We do tno support channels and channel pattern.
 	consumerOptions.Topic = options.Channel
-	consumerOptions.PayloadInstance = options.PayloadInstance
 	*consumerOptions = mergeWithDefaultConsumerOptions(*consumerOptions)
 
 	if err := consumerOptions.Validate(); err != nil {
@@ -101,7 +99,7 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 		ConsumerOptions:  consumerOptions,
 		QueueManager:     qm,
 		Handler:          hevent.RecoverMiddleware(options.Handler),
-		MessageConverter: newMessageConverter(hevent.NewRawMessageConverter(r.p, hevent.NewProtobufEncoder())),
+		MessageConverter: newMessageConverter(hevent.NewRawMessageConverter(r.p, nil)),
 		Producer:         r.producer,
 	})
 	consumerGroup, err := sarama.NewConsumerGroup(

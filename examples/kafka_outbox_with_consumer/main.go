@@ -132,8 +132,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 			BackoffCoefficient: 2,
 			MaximumAttempts:    3,
 		},
-		Handler:         helloHandler,
-		PayloadInstance: &hello.HelloPayload{},
+		Handler: helloHandler,
 	}))
 	gutil.PanicErr(err)
 }
@@ -143,8 +142,11 @@ var retryCount = -1
 func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
+	var p hello.HelloPayload
+	gutil.PanicErr(msg.Payload.Decode(&p))
+
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", msg.Payload.(*hello.HelloPayload).Name))
+	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
 
 	c.Logger().Info("ok, I'm processed this message, by :)")
 	return nil
