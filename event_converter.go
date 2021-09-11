@@ -37,7 +37,7 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 		return nil, tracer.Trace(err)
 	}
 
-	headers, err := m.p.Extract(ctx)
+	headers, err := m.p.Inject(ctx)
 	if err != nil {
 		return nil, tracer.Trace(err)
 	}
@@ -54,7 +54,7 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage) (
 	ctx hexa.Context, msg Message, err error) {
 
-	c, err = m.p.Inject(rawMsg.Headers, c)
+	c, err = m.p.Extract(c, rawMsg.Headers)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
