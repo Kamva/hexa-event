@@ -135,7 +135,8 @@ func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, 
 	c.Logger().Info("msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
 	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
 	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
-	c.Logger().Info("Done message handing -------------")
+	logDeduplicatorMetaValues(c)
+	c.Logger().Info("Done message handing \n -------------")
 
 	return nil
 }
@@ -149,9 +150,17 @@ func sayHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, er
 	c.Logger().Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
 	c.Logger().Info("say: ctx correlation_id", hlog.String("cid", c.CorrelationID()))
 	c.Logger().Info(fmt.Sprintf("say: hi %s", p.Name))
-	c.Logger().Info("say: Done message handing -------------")
+	logDeduplicatorMetaValues(c)
+	c.Logger().Info("say: Done message handing \n -------------")
 
 	return nil
+}
+
+func logDeduplicatorMetaValues(c context.Context) {
+	hlog.Info("event id", hlog.String("event_id", c.Value(hevent.HexaEventID).(string)))
+	hlog.Info("action name", hlog.String("action_name", c.Value(hevent.HexaEventHandlerAction).(string)))
+	hlog.Info("root event id", hlog.String("root_event_id", c.Value(hevent.HexaRootEventID).(string)))
+	hlog.Info("root action name", hlog.String("root_action_name", c.Value(hevent.HexaRootEventHandlerActionName).(string)))
 }
 
 func mapBytesToMapString(b map[string][]byte) map[string]string {

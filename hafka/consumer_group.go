@@ -3,10 +3,12 @@ package hafka
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
+	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
@@ -170,7 +172,9 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			}
 		}
 
-		hctx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg)
+		// Inject custom headers for message deduplication.
+		hexaCtx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg)
+		hexaCtx = hexa.MustNewContextFromRawContext(h.injectMessageDeduplicationMetaKeys(hexaCtx, msg))
 
 		if err != nil {
 			hlog.Error("can not convert raw message to hexa event message", h.logMsgErr(msg, err, retryCount)...)
@@ -179,9 +183,9 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			// TODO: maybe we don't need to retry messages that we
 			// can not convert to the hexa message.
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
-		} else if err := h.handler(newEmptyHandlerContext(), hctx, hmsg, err); err != nil {
+		} else if err := h.handler(newEmptyHandlerContext(), hexaCtx, hmsg, err); err != nil {
 			// log error
-			hctx.Logger().Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
+			hexaCtx.Logger().Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
 			// retry the message
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
@@ -206,6 +210,48 @@ func (h *cgHandler) logMsgErr(msg *sarama.ConsumerMessage, err error, retryCount
 	return append(fields, hlog.ErrFields(tracer.Trace(err))...)
 }
 
+// injectMessageDeduplicationMetaKeys injects message deduplication meta keys into the
+// message headers for next retries and into the context to deduplicate messages.
+func (h *cgHandler) injectMessageDeduplicationMetaKeys(ctx context.Context, msg *sarama.ConsumerMessage) context.Context {
+	var rootEventId, rootActionName string
+
+	eventId := generateEventId(msg.Topic, msg.Partition, msg.Offset)
+	actionName := h.o.Group
+
+	for _, h := range msg.Headers {
+		if string(h.Key) == hevent.HexaRootEventID {
+			rootEventId = string(h.Value)
+		}
+
+		if string(h.Key) == hevent.HexaRootEventHandlerActionName {
+			rootActionName = string(h.Value)
+		}
+	}
+
+	if rootEventId == "" {
+		rootEventId = eventId
+		msg.Headers = append(msg.Headers, &sarama.RecordHeader{
+			Key:   []byte(hevent.HexaRootEventID),
+			Value: []byte(rootEventId),
+		})
+	}
+
+	if rootActionName == "" {
+		rootActionName = actionName
+		msg.Headers = append(msg.Headers, &sarama.RecordHeader{
+			Key:   []byte(hevent.HexaRootEventHandlerActionName),
+			Value: []byte(rootActionName),
+		})
+	}
+
+	// Set all values into hexa context:
+	ctx = context.WithValue(ctx, hevent.HexaEventID, eventId)
+	ctx = context.WithValue(ctx, hevent.HexaEventHandlerAction, actionName)
+	ctx = context.WithValue(ctx, hevent.HexaRootEventID, rootEventId)
+	ctx = context.WithValue(ctx, hevent.HexaRootEventHandlerActionName, rootActionName)
+	return hexa.MustNewContextFromRawContext(ctx)
+}
+
 type emptyHandlerContext struct {
 	context.Context
 }
@@ -220,6 +266,10 @@ func (e *emptyHandlerContext) Ack() {
 
 func (e *emptyHandlerContext) Nack() {
 	// Do nothing.
+}
+
+func generateEventId(topic string, partition int32, offset int64) string {
+	return fmt.Sprintf("%s-%d-%d", topic, partition, offset)
 }
 
 var _ ConsumerGroupHandler = &cgHandler{}

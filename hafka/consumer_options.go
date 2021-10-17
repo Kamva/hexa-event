@@ -73,7 +73,8 @@ func (rp RetryPolicy) Validate() error {
 }
 
 var defaultRetryPolicy = RetryPolicy{
-	InitialInterval:    time.Minute,
+	//InitialInterval:    time.Minute,
+	InitialInterval:    time.Second,
 	BackoffCoefficient: 2,
 	MaximumAttempts:    4,
 }
