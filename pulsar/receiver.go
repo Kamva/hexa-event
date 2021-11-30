@@ -30,7 +30,7 @@ type (
 
 	// handlerContext implements the HandlerContext interface.
 	handlerContext struct {
-		context.Context
+		hexa.Context
 		msg pulsar.ConsumerMessage
 	}
 )
@@ -85,7 +85,7 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, h hevent.EventHandler) er
 		ctx, message, err := r.extractMessage(msg)
 		// Note: we just log the handler error, if you want to send nack,
 		// you should call to the Nack method.
-		if err := h(newHandlerCtx(msg), ctx, message, err); err != nil {
+		if err := h(newHandlerCtx(ctx, msg), message, err); err != nil {
 			ctx.Logger().Error("error on handling event",
 				hlog.String("topic", msg.Topic()),
 				hlog.String("key", msg.Key()),
@@ -122,7 +122,7 @@ func (r *receiver) extractMessage(msg pulsar.ConsumerMessage) (ctx hexa.Context,
 		return
 	}
 
-	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg)
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, msg)
 	return
 }
 
@@ -143,9 +143,9 @@ func receive(consumer pulsar.Consumer, wg *sync.WaitGroup, done chan bool, f fun
 }
 
 // newHandlerCtx returns new instance of the handler context.
-func newHandlerCtx(msg pulsar.ConsumerMessage) hevent.HandlerContext {
+func newHandlerCtx(ctx hexa.Context, msg pulsar.ConsumerMessage) hevent.HandlerContext {
 	return &handlerContext{
-		Context: context.Background(),
+		Context: ctx,
 		msg:     msg,
 	}
 }

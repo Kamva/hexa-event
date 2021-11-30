@@ -129,7 +129,7 @@ func receive(receiver hevent.Receiver) {
 	gutil.PanicErr(receiver.SubscribeWithOptions(hestan.NewSubscriptionOptions(o)))
 }
 
-func handler(c hevent.HandlerContext, ctx hexa.Context, msg hevent.Message, err error) error {
+func handler(ctx hevent.HandlerContext, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
 	var p HelloPayload

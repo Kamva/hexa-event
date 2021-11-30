@@ -126,7 +126,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 	gutil.PanicErr(err)
 }
 
-func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
+func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
 	var p HelloPayload
@@ -141,7 +141,7 @@ func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, 
 	return nil
 }
 
-func sayHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
+func sayHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
 	var p HelloPayload
@@ -158,7 +158,7 @@ func sayHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, er
 
 func logDeduplicatorMetaValues(c context.Context) {
 	hlog.Info("event id", hlog.String("event_id", c.Value(hevent.HexaEventID).(string)))
-	hlog.Info("action name", hlog.String("action_name", c.Value(hevent.HexaEventHandlerAction).(string)))
+	hlog.Info("action name", hlog.String("action_name", c.Value(hevent.HexaEventHandlerActionName).(string)))
 	hlog.Info("root event id", hlog.String("root_event_id", c.Value(hevent.HexaRootEventID).(string)))
 	hlog.Info("root action name", hlog.String("root_action_name", c.Value(hevent.HexaRootEventHandlerActionName).(string)))
 }

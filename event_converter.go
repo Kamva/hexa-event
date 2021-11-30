@@ -15,7 +15,9 @@ const (
 
 type RawMessageConverter interface {
 	EventToRaw(c hexa.Context, e *Event) (*RawMessage, error)
-	RawMsgToMessage(c context.Context, raw *RawMessage) (hexa.Context, Message, error)
+	// RawMsgToMessage converts the raw message to a message.
+	// primary is the primary driver's message that its receiver will get.
+	RawMsgToMessage(c context.Context, raw *RawMessage, primary interface{}) (hexa.Context, Message, error)
 }
 
 type rawMessageConverter struct {
@@ -51,7 +53,7 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 	}, err
 }
 
-func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage) (
+func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage, primary interface{}) (
 	ctx hexa.Context, msg Message, err error) {
 
 	c, err = m.p.Extract(c, rawMsg.Headers)
@@ -69,11 +71,13 @@ func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMess
 	}
 
 	msg = Message{
+		Primary:       primary,
 		Headers:       rawMsg.Headers,
 		CorrelationId: ctx.CorrelationID(),
 		ReplyChannel:  string(rawMsg.Headers[HeaderKeyReplyChannel]),
 		Payload:       encoder.Decoder(rawMsg.Payload),
 	}
+
 	return
 }
 

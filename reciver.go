@@ -1,8 +1,6 @@
 package hevent
 
 import (
-	"context"
-
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
@@ -33,7 +31,7 @@ type SubscriptionOptions struct {
 // EventHandler handle events.
 // pulsar and hestan implementations just log returned error, in kafka
 // if you return error, it will push event to the retry or DLQ topic.
-type EventHandler func(HandlerContext, hexa.Context, Message, error) error
+type EventHandler func(HandlerContext, Message, error) error
 
 type Receiver interface {
 	// Subscribe subscribe to the provided channel
@@ -48,7 +46,7 @@ type Receiver interface {
 
 // HandlerContext is the context that pass to the message handler.
 type HandlerContext interface {
-	context.Context
+	hexa.Context
 	// Ack get the message and send ack.
 	Ack()
 	// Nack gets the message and send negative ack.
@@ -72,6 +70,10 @@ type RawMessage struct {
 
 // Message is the message that provide to event handler.
 type Message struct {
+	// Primary is not the RawMessage. its the driver's
+	// raw message.
+	Primary interface{}
+
 	Headers map[string][]byte
 
 	CorrelationId string
@@ -120,8 +122,8 @@ func (e RawMessage) Validate() error {
 // NewSubscriptionOptions returns new instance of the subscription options.
 func NewSubscriptionOptions(channel string, handler EventHandler) *SubscriptionOptions {
 	return &SubscriptionOptions{
-		Channel:         channel,
-		Handler:         handler,
+		Channel: channel,
+		Handler: handler,
 	}
 }
 

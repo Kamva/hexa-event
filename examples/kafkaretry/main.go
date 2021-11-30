@@ -45,6 +45,7 @@ func main() {
 	receiver, err := hafka.NewReceiver(hafka.ReceiverOptions{
 		ContextPropagator: p,
 		Client:            client,
+		Middlewares:       []hevent.Middleware{hevent.RecoverMiddleware},
 	})
 	gutil.PanicErr(err)
 	defer receiver.Shutdown(context.Background())
@@ -101,7 +102,7 @@ func subscribeToEvents(receiver hevent.Receiver) {
 
 var retryCount = -1
 
-func helloHandler(hc hevent.HandlerContext, c hexa.Context, msg hevent.Message, err error) error {
+func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
 	gutil.PanicErr(err)
 
 	var p HelloPayload

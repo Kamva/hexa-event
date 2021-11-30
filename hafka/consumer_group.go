@@ -183,7 +183,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			// TODO: maybe we don't need to retry messages that we
 			// can not convert to the hexa message.
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
-		} else if err := h.handler(newEmptyHandlerContext(), hexaCtx, hmsg, err); err != nil {
+		} else if err := h.handler(newEmptyHandlerContext(hexaCtx), hmsg, err); err != nil {
 			// log error
 			hexaCtx.Logger().Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
@@ -246,18 +246,18 @@ func (h *cgHandler) injectMessageDeduplicationMetaKeys(ctx context.Context, msg 
 
 	// Set all values into hexa context:
 	ctx = context.WithValue(ctx, hevent.HexaEventID, eventId)
-	ctx = context.WithValue(ctx, hevent.HexaEventHandlerAction, actionName)
+	ctx = context.WithValue(ctx, hevent.HexaEventHandlerActionName, actionName)
 	ctx = context.WithValue(ctx, hevent.HexaRootEventID, rootEventId)
 	ctx = context.WithValue(ctx, hevent.HexaRootEventHandlerActionName, rootActionName)
 	return hexa.MustNewContextFromRawContext(ctx)
 }
 
 type emptyHandlerContext struct {
-	context.Context
+	hexa.Context
 }
 
-func newEmptyHandlerContext() hevent.HandlerContext {
-	return &emptyHandlerContext{context.Background()}
+func newEmptyHandlerContext(ctx hexa.Context) hevent.HandlerContext {
+	return &emptyHandlerContext{ctx}
 }
 
 func (e *emptyHandlerContext) Ack() {

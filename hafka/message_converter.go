@@ -54,7 +54,7 @@ func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMes
 		return
 	}
 
-	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg)
+	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg,msg)
 }
 
 func (c *messageConverter) ConsumerToProducerMessage(newTopic string, msg *sarama.ConsumerMessage) *sarama.ProducerMessage {

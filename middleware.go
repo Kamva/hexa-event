@@ -3,7 +3,6 @@ package hevent
 import (
 	"fmt"
 
-	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
 )
 
@@ -19,7 +18,7 @@ func WithMiddlewares(h EventHandler, middlewares ...Middleware) EventHandler {
 
 // RecoverMiddleware is a event handler middleware which recover panic error.
 func RecoverMiddleware(h EventHandler) EventHandler {
-	return func(hc HandlerContext, c hexa.Context, message Message, err error) (errResult error) {
+	return func(c HandlerContext, message Message, err error) (errResult error) {
 		defer func() {
 			if r := recover(); r != nil {
 				err, ok := r.(error)
@@ -31,6 +30,6 @@ func RecoverMiddleware(h EventHandler) EventHandler {
 			}
 		}()
 
-		return tracer.Trace(h(hc, c, message, err))
+		return tracer.Trace(h(c, message, err))
 	}
 }

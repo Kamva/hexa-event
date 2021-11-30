@@ -96,7 +96,7 @@ func receive() {
 	gutil.PanicErr(err)
 }
 
-func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err error) error {
+func sayHello(c hevent.HandlerContext, m hevent.Message, err error) error {
 	gutil.PanicErr(err)
 	fmt.Println("running hello handler.")
 	fmt.Println(m.Headers)
@@ -106,7 +106,7 @@ func sayHello(hc hevent.HandlerContext, c hexa.Context, m hevent.Message, err er
 
 	fmt.Println(p.Hello)
 	fmt.Println(c.User().Type())
-	hc.Ack()
+	c.Ack()
 	return nil
 }
 

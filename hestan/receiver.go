@@ -20,7 +20,7 @@ import (
 )
 
 type handlerContext struct {
-	context.Context
+	hexa.Context
 	msg *stan.Msg
 }
 
@@ -62,8 +62,8 @@ func (h *handlerContext) Nack() {
 	// When we do not send ack, it assume nack.
 }
 
-func newHandlerCtx(msg *stan.Msg) hevent.HandlerContext {
-	return &handlerContext{msg: msg}
+func newHandlerCtx(ctx hexa.Context, msg *stan.Msg) hevent.HandlerContext {
+	return &handlerContext{Context: ctx, msg: msg}
 
 }
 
@@ -133,7 +133,7 @@ func (r *receiver) handler(h hevent.EventHandler) stan.MsgHandler {
 		hlog.Debug("received event", hlog.String("subject", msg.Subject), hlog.String("msg", string(msg.Data)))
 		ctx, m, err := r.extractMessage(msg.Data)
 		// Note: we do not send ack or
-		if err := h(newHandlerCtx(msg), ctx, m, tracer.Trace(err)); err != nil {
+		if err := h(newHandlerCtx(ctx, msg), m, tracer.Trace(err)); err != nil {
 			ctx.Logger().Error("error on handling event",
 				hlog.Err(err),
 				hlog.Any("headers", m.Headers),
@@ -157,7 +157,7 @@ func (r *receiver) extractMessage(msg []byte) (ctx hexa.Context, m hevent.Messag
 		return
 	}
 
-	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg)
+	ctx, m, err = r.msgConverter.RawMsgToMessage(context.Background(), &rawMsg, msg)
 	return
 }
 
