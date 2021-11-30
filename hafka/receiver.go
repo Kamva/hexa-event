@@ -17,7 +17,7 @@ type receiver struct {
 	consumerGroups []ConsumerGroup
 	producerClient sarama.Client
 	producer       sarama.AsyncProducer
-	middlewares    []hevent.MiddlewareFunc // global middlewares
+	middlewares    []hevent.Middleware // global middlewares
 }
 
 func (r *receiver) HealthIdentifier() string {
@@ -55,7 +55,7 @@ type ReceiverOptions struct {
 	// messages retry queues.
 	Client sarama.Client
 
-	Middlewares []hevent.MiddlewareFunc
+	Middlewares []hevent.Middleware
 }
 
 func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {

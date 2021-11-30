@@ -7,10 +7,10 @@ import (
 	"github.com/kamva/tracer"
 )
 
-type MiddlewareFunc func(handler EventHandler) EventHandler
+type Middleware func(handler EventHandler) EventHandler
 
 // WithMiddlewares adds middlewares to the handler too.
-func WithMiddlewares(h EventHandler, middlewares ...MiddlewareFunc) EventHandler {
+func WithMiddlewares(h EventHandler, middlewares ...Middleware) EventHandler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)
 	}
