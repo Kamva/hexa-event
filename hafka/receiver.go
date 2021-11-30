@@ -17,6 +17,7 @@ type receiver struct {
 	consumerGroups []ConsumerGroup
 	producerClient sarama.Client
 	producer       sarama.AsyncProducer
+	middlewares    []hevent.MiddlewareFunc // global middlewares
 }
 
 func (r *receiver) HealthIdentifier() string {
@@ -53,6 +54,8 @@ type ReceiverOptions struct {
 	// We use this client to crate producer to push
 	// messages retry queues.
 	Client sarama.Client
+
+	Middlewares []hevent.MiddlewareFunc
 }
 
 func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
@@ -66,6 +69,7 @@ func NewReceiver(o ReceiverOptions) (hevent.Receiver, error) {
 		consumerGroups: make([]ConsumerGroup, 0),
 		producerClient: o.Client,
 		producer:       producer,
+		middlewares:    o.Middlewares,
 	}, nil
 }
 
@@ -98,7 +102,7 @@ func (r *receiver) SubscribeWithOptions(options *hevent.SubscriptionOptions) err
 	cgh := newConsumerGroupHandler(ConsumerGroupHandlerOptions{
 		ConsumerOptions:  consumerOptions,
 		QueueManager:     qm,
-		Handler:          hevent.RecoverMiddleware(options.Handler),
+		Handler:          hevent.WithMiddlewares(options.Handler, r.middlewares...),
 		MessageConverter: newMessageConverter(hevent.NewRawMessageConverter(r.p, nil)),
 		Producer:         r.producer,
 	})

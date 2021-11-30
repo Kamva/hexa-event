@@ -76,7 +76,7 @@ func (cg *consumerGroup) Consume() error {
 				return
 			}
 
-			hlog.Info("rebalance kafak consumer group", hlog.String("group", cg.o.Group))
+			hlog.Info("rebalanced Kafka consumer group", hlog.String("group", cg.o.Group))
 
 			// The consumerGroupHandler's "ready" channel reset by CleanUp() method on the
 			// consumerGroupHandler.
