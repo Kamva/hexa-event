@@ -20,7 +20,7 @@ import (
 )
 
 type handlerContext struct {
-	hexa.Context
+	context.Context
 	msg *stan.Msg
 }
 
@@ -62,7 +62,7 @@ func (h *handlerContext) Nack() {
 	// When we do not send ack, it assume nack.
 }
 
-func newHandlerCtx(ctx hexa.Context, msg *stan.Msg) hevent.HandlerContext {
+func newHandlerCtx(ctx context.Context, msg *stan.Msg) hevent.HandlerContext {
 	return &handlerContext{Context: ctx, msg: msg}
 
 }
@@ -134,7 +134,7 @@ func (r *receiver) handler(h hevent.EventHandler) stan.MsgHandler {
 		ctx, m, err := r.extractMessage(msg.Data)
 		// Note: we do not send ack or
 		if err := h(newHandlerCtx(ctx, msg), m, tracer.Trace(err)); err != nil {
-			ctx.Logger().Error("error on handling event",
+			hlog.CtxLogger(ctx).Error("error on handling event",
 				hlog.Err(err),
 				hlog.Any("headers", m.Headers),
 				hlog.String("reply_channel", m.ReplyChannel),
@@ -143,7 +143,7 @@ func (r *receiver) handler(h hevent.EventHandler) stan.MsgHandler {
 	}
 }
 
-func (r *receiver) extractMessage(msg []byte) (ctx hexa.Context, m hevent.Message, err error) {
+func (r *receiver) extractMessage(msg []byte) (ctx context.Context, m hevent.Message, err error) {
 	rawMsg := hevent.RawMessage{}
 	err = json.Unmarshal(msg, &rawMsg)
 	if err != nil {

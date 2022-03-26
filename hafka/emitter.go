@@ -80,7 +80,7 @@ func NewEmitter(o EmitterOptions) (hevent.Emitter, error) {
 	}, nil
 }
 
-func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
+func (e *emitter) Emit(ctx context.Context, event *hevent.Event) (msgID string, err error) {
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
 	}

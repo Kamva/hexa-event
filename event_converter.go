@@ -14,10 +14,10 @@ const (
 )
 
 type RawMessageConverter interface {
-	EventToRaw(c hexa.Context, e *Event) (*RawMessage, error)
+	EventToRaw(c context.Context, e *Event) (*RawMessage, error)
 	// RawMsgToMessage converts the raw message to a message.
 	// primary is the primary driver's message that its receiver will get.
-	RawMsgToMessage(c context.Context, raw *RawMessage, primary interface{}) (hexa.Context, Message, error)
+	RawMsgToMessage(c context.Context, raw *RawMessage, primary interface{}) (context.Context, Message, error)
 }
 
 type rawMessageConverter struct {
@@ -32,7 +32,7 @@ func NewRawMessageConverter(p hexa.ContextPropagator, e Encoder) RawMessageConve
 	}
 }
 
-func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMessage, error) {
+func (m *rawMessageConverter) EventToRaw(ctx context.Context, event *Event) (*RawMessage, error) {
 	payload, err := m.e.Encode(event.Payload)
 
 	if err != nil {
@@ -54,15 +54,14 @@ func (m *rawMessageConverter) EventToRaw(ctx hexa.Context, event *Event) (*RawMe
 }
 
 func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMessage, primary interface{}) (
-	ctx hexa.Context, msg Message, err error) {
+	ctx context.Context, msg Message, err error) {
 
-	c, err = m.p.Extract(c, rawMsg.Headers)
+	ctx, err = m.p.Extract(c, rawMsg.Headers)
 	if err != nil {
 		err = tracer.Trace(err)
 		return
 	}
 
-	ctx = hexa.MustNewContextFromRawContext(c)
 	encoderName := string(rawMsg.Headers[HeaderKeyPayloadEncoder])
 	encoder, ok := encoders[encoderName]
 	if !ok {
@@ -73,7 +72,7 @@ func (m *rawMessageConverter) RawMsgToMessage(c context.Context, rawMsg *RawMess
 	msg = Message{
 		Primary:       primary,
 		Headers:       rawMsg.Headers,
-		CorrelationId: ctx.CorrelationID(),
+		CorrelationId: hexa.CtxCorrelationId(ctx),
 		ReplyChannel:  string(rawMsg.Headers[HeaderKeyReplyChannel]),
 		Payload:       encoder.Decoder(rawMsg.Payload),
 	}

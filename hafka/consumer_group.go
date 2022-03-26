@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
@@ -174,7 +173,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 
 		// Inject custom headers for message deduplication.
 		hexaCtx, hmsg, err := h.msgConverter.ConsumerMessageToEventMessage(msg)
-		hexaCtx = hexa.MustNewContextFromRawContext(h.injectMessageDeduplicationMetaKeys(hexaCtx, msg))
+		hexaCtx = h.injectMessageDeduplicationMetaKeys(hexaCtx, msg)
 
 		if err != nil {
 			hlog.Error("can not convert raw message to hexa event message", h.logMsgErr(msg, err, retryCount)...)
@@ -185,7 +184,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
 		} else if err := h.handler(newEmptyHandlerContext(hexaCtx), hmsg, err); err != nil {
 			// log error
-			hexaCtx.Logger().Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
+			hlog.CtxLogger(hexaCtx).Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
 			// retry the message
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
@@ -249,14 +248,14 @@ func (h *cgHandler) injectMessageDeduplicationMetaKeys(ctx context.Context, msg 
 	ctx = context.WithValue(ctx, hevent.HexaEventHandlerActionName, actionName)
 	ctx = context.WithValue(ctx, hevent.HexaRootEventID, rootEventId)
 	ctx = context.WithValue(ctx, hevent.HexaRootEventHandlerActionName, rootActionName)
-	return hexa.MustNewContextFromRawContext(ctx)
+	return ctx
 }
 
 type emptyHandlerContext struct {
-	hexa.Context
+	context.Context
 }
 
-func newEmptyHandlerContext(ctx hexa.Context) hevent.HandlerContext {
+func newEmptyHandlerContext(ctx context.Context) hevent.HandlerContext {
 	return &emptyHandlerContext{ctx}
 }
 

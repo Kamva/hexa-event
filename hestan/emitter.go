@@ -38,7 +38,7 @@ type emitter struct {
 	msgConverter hevent.RawMessageConverter
 }
 
-func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (msgID string, err error) {
+func (e *emitter) Emit(ctx context.Context, event *hevent.Event) (msgID string, err error) {
 	// TODO: implement publish async option also.
 
 	if err := event.Validate(); err != nil {

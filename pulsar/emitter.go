@@ -39,7 +39,7 @@ type (
 	}
 )
 
-func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
+func (e *emitter) Emit(ctx context.Context, event *hevent.Event) (string, error) {
 
 	if err := event.Validate(); err != nil {
 		return "", tracer.Trace(err)
@@ -63,7 +63,7 @@ func (e *emitter) Emit(ctx hexa.Context, event *hevent.Event) (string, error) {
 	return string(id.Serialize()), tracer.Trace(err)
 }
 
-func (e *emitter) msg(ctx hexa.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
+func (e *emitter) msg(ctx context.Context, event *hevent.Event) (*pulsar.ProducerMessage, error) {
 	msg, err := e.msgConverter.EventToRaw(ctx, event)
 	if err != nil {
 		return nil, tracer.Trace(err)

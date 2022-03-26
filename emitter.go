@@ -1,6 +1,8 @@
 package hevent
 
 import (
+	"context"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 )
@@ -11,7 +13,7 @@ type (
 		// Emit sends event to the channel.
 		// context can be nil.
 		// dont forget to validate the event here.
-		Emit(hexa.Context, *Event) (msgID string, err error)
+		Emit(context.Context, *Event) (msgID string, err error)
 		hexa.Shutdownable
 	}
 

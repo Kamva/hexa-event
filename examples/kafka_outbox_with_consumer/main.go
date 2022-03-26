@@ -76,11 +76,11 @@ func emit() {
 
 func sendEvent(emitter hevent.Emitter) error {
 	hctx := hexa.NewContext(nil, hexa.ContextParams{
-		CorrelationId: "my_correlation_id",
-		Locale:        "",
-		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		CorrelationId:  "my_correlation_id",
+		Locale:         "",
+		User:           hexa.NewGuest(),
+		BaseLogger:     l,
+		BaseTranslator: t,
 	})
 
 	_, err := emitter.Emit(hctx, &hevent.Event{
@@ -146,9 +146,10 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 	var p hello.HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
+	l := hlog.CtxLogger(c)
+	l.Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
+	l.Info(fmt.Sprintf("hi %s", p.Name))
 
-	c.Logger().Info("ok, I'm processed this message, by :)")
+	l.Info("ok, I'm processed this message, by :)")
 	return nil
 }

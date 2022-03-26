@@ -1,16 +1,16 @@
 package kafkabox
 
 import (
+	"context"
 	"time"
 
 	"github.com/kamva/gutil"
-	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/tracer"
 )
 
 type MessageConverter interface {
-	EventToOutboxMessage(hexa.Context, *hevent.Event) (*OutboxMessage, error)
+	EventToOutboxMessage(context.Context, *hevent.Event) (*OutboxMessage, error)
 }
 
 type messageConverter struct {
@@ -23,7 +23,7 @@ func newMessageConverter(c hevent.RawMessageConverter) MessageConverter {
 	}
 }
 
-func (c *messageConverter) EventToOutboxMessage(ctx hexa.Context, event *hevent.Event) (*OutboxMessage, error) {
+func (c *messageConverter) EventToOutboxMessage(ctx context.Context, event *hevent.Event) (*OutboxMessage, error) {
 	raw, err := c.rawMsgConverter.EventToRaw(ctx, event)
 	if err != nil {
 		return nil, tracer.Trace(err)

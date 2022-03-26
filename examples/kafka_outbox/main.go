@@ -54,8 +54,8 @@ func sendEvent(emitter hevent.Emitter) error {
 		CorrelationId: "my_correlation_id",
 		Locale:        "en-US",
 		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		BaseLogger:        l,
+		BaseTranslator:    t,
 	})
 
 	_, err := emitter.Emit(hctx, &hevent.Event{

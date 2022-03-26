@@ -60,11 +60,11 @@ func send() {
 	}
 
 	ctx := hexa.NewContext(nil, hexa.ContextParams{
-		CorrelationId: "test-correlation-id",
-		Locale:        "en",
-		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		CorrelationId:  "test-correlation-id",
+		Locale:         "en",
+		User:           hexa.NewGuest(),
+		BaseLogger:     l,
+		BaseTranslator: t,
 	})
 	res, err := emitter.Emit(ctx, event)
 	gutil.PanicErr(err)
@@ -105,7 +105,7 @@ func sayHello(c hevent.HandlerContext, m hevent.Message, err error) error {
 	gutil.PanicErr(m.Payload.Decode(&p))
 
 	fmt.Println(p.Hello)
-	fmt.Println(c.User().Type())
+	fmt.Println(hexa.CtxUser(c).Type())
 	c.Ack()
 	return nil
 }

@@ -1,6 +1,8 @@
 package hevent
 
 import (
+	"context"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
 	"github.com/kamva/tracer"
@@ -46,7 +48,7 @@ type Receiver interface {
 
 // HandlerContext is the context that pass to the message handler.
 type HandlerContext interface {
-	hexa.Context
+	context.Context
 	// Ack get the message and send ack.
 	Ack()
 	// Nack gets the message and send negative ack.

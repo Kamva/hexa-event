@@ -60,11 +60,11 @@ func main() {
 
 func sendEvent(e hevent.Emitter, topic string) {
 	hctx := hexa.NewContext(nil, hexa.ContextParams{
-		CorrelationId: "salam_correlation_id",
-		Locale:        "en-US",
-		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		CorrelationId:  "salam_correlation_id",
+		Locale:         "en-US",
+		User:           hexa.NewGuest(),
+		BaseLogger:     l,
+		BaseTranslator: t,
 	})
 
 	_, err := e.Emit(hctx, &hevent.Event{
@@ -108,13 +108,13 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
+	hlog.CtxLogger(c).Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
+	hlog.CtxLogger(c).Info(fmt.Sprintf("hi %s", p.Name))
 
 	retryCount++
 	if retryCount <= 3 {
 		return errors.New("fake error just to retry the event")
 	}
-	c.Logger().Info("ok, I'm processed this message, by :)")
+	hlog.CtxLogger(c).Info("ok, I'm processed this message, by :)")
 	return nil
 }

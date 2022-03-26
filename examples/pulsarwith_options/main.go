@@ -63,8 +63,8 @@ func send() {
 		CorrelationId: "test-correlation-id",
 		Locale:        "en",
 		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		BaseLogger:        l,
+		BaseTranslator:    t,
 	})
 	res, err := emitter.Emit(ctx, event)
 	gutil.PanicErr(err)
@@ -110,7 +110,7 @@ func sayHello(c hevent.HandlerContext, m hevent.Message, err error) error {
 	var p HelloPayload
 	gutil.PanicErr(m.Payload.Decode(&p))
 	fmt.Println(p.Hello)
-	fmt.Println(c.User().Type())
+	fmt.Println(hexa.CtxUser(c).Type())
 	c.Ack()
 	return nil
 }

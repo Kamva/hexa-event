@@ -42,11 +42,11 @@ type HelloPayload struct {
 func main() {
 	emitter, receiver := bootstrap()
 	ctx := hexa.NewContext(nil, hexa.ContextParams{
-		CorrelationId: correlationID,
-		Locale:        "en",
-		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		CorrelationId:  correlationID,
+		Locale:         "en",
+		User:           hexa.NewGuest(),
+		BaseLogger:     l,
+		BaseTranslator: t,
 	})
 	hlog.Info("connected...")
 
@@ -98,7 +98,7 @@ func connect() (*nats.Conn, stan.Conn) {
 	return nc, sc
 }
 
-func emit(ctx hexa.Context, emitter hevent.Emitter) {
+func emit(ctx context.Context, emitter hevent.Emitter) {
 	_, err := emitter.Emit(ctx, &hevent.Event{
 		Key:          "my-key",
 		Channel:      channel,
@@ -135,7 +135,7 @@ func handler(ctx hevent.HandlerContext, msg hevent.Message, err error) error {
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	hlog.Info("correlation_id", hlog.String("correlation_id", ctx.CorrelationID()))
+	hlog.Info("correlation_id", hlog.String("correlation_id", hexa.CtxCorrelationId(ctx)))
 	hlog.Info("reply_channel", hlog.String("reply_channel", msg.ReplyChannel))
 	hlog.Info("payload", hlog.String("payload", p.Hello))
 	return err

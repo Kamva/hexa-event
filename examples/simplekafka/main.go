@@ -74,11 +74,11 @@ func main() {
 
 func sendEvents(c context.Context, e hevent.Emitter, interval time.Duration) {
 	hctx := hexa.NewContext(nil, hexa.ContextParams{
-		CorrelationId: gutil.UUID(),
-		Locale:        "en-US",
-		User:          hexa.NewGuest(),
-		Logger:        l,
-		Translator:    t,
+		CorrelationId:  gutil.UUID(),
+		Locale:         "en-US",
+		User:           hexa.NewGuest(),
+		BaseLogger:     l,
+		BaseTranslator: t,
 	})
 	ticker := time.NewTicker(interval)
 	go func() {
@@ -132,11 +132,12 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	c.Logger().Info("msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
-	c.Logger().Info("ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("hi %s", p.Name))
+	l := hlog.CtxLogger(c)
+	l.Info("msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
+	l.Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
+	l.Info(fmt.Sprintf("hi %s", p.Name))
 	logDeduplicatorMetaValues(c)
-	c.Logger().Info("Done message handing \n -------------")
+	l.Info("Done message handing \n -------------")
 
 	return nil
 }
@@ -147,11 +148,12 @@ func sayHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	c.Logger().Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
-	c.Logger().Info("say: ctx correlation_id", hlog.String("cid", c.CorrelationID()))
-	c.Logger().Info(fmt.Sprintf("say: hi %s", p.Name))
+	l := hlog.CtxLogger(c)
+	l.Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
+	l.Info("say: ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
+	l.Info(fmt.Sprintf("say: hi %s", p.Name))
 	logDeduplicatorMetaValues(c)
-	c.Logger().Info("say: Done message handing \n -------------")
+	l.Info("say: Done message handing \n -------------")
 
 	return nil
 }

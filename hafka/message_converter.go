@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/Shopify/sarama"
-	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/tracer"
 )
 
 type MessageConverter interface {
-	EventToProducerMessage(hexa.Context, *hevent.Event) (*sarama.ProducerMessage, error)
-	ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (hexa.Context, hevent.Message, error)
+	EventToProducerMessage(context.Context, *hevent.Event) (*sarama.ProducerMessage, error)
+	ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (context.Context, hevent.Message, error)
 	ConsumerToProducerMessage(newTopic string, msg *sarama.ConsumerMessage) *sarama.ProducerMessage
 }
 
@@ -25,7 +24,7 @@ func newMessageConverter(c hevent.RawMessageConverter) MessageConverter {
 	}
 }
 
-func (c *messageConverter) EventToProducerMessage(ctx hexa.Context, event *hevent.Event) (*sarama.ProducerMessage, error) {
+func (c *messageConverter) EventToProducerMessage(ctx context.Context, event *hevent.Event) (*sarama.ProducerMessage, error) {
 	raw, err := c.rawMsgConverter.EventToRaw(ctx, event)
 	if err != nil {
 		return nil, tracer.Trace(err)
@@ -42,7 +41,7 @@ func (c *messageConverter) EventToProducerMessage(ctx hexa.Context, event *heven
 	}, nil
 }
 
-func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (ctx hexa.Context, emsg hevent.Message, err error) {
+func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMessage) (ctx context.Context, emsg hevent.Message, err error) {
 	rawMsg := hevent.RawMessage{
 		Headers: c.RawMessageHeaders(msg.Headers),
 		Payload: msg.Value,
@@ -54,7 +53,7 @@ func (c *messageConverter) ConsumerMessageToEventMessage(msg *sarama.ConsumerMes
 		return
 	}
 
-	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg,msg)
+	return c.rawMsgConverter.RawMsgToMessage(context.Background(), &rawMsg, msg)
 }
 
 func (c *messageConverter) ConsumerToProducerMessage(newTopic string, msg *sarama.ConsumerMessage) *sarama.ProducerMessage {
