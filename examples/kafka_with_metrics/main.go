@@ -3,9 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"syscall"
 	"time"
+
+	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 
 	"github.com/Shopify/sarama"
 	"github.com/kamva/gutil"
@@ -14,9 +19,21 @@ import (
 	"github.com/kamva/hexa-event/hafka"
 	"github.com/kamva/hexa/hexatranslator"
 	"github.com/kamva/hexa/hlog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/sdk/export/metric/aggregation"
+	"go.opentelemetry.io/otel/sdk/metric/aggregator/histogram"
+	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
+	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
+	"go.opentelemetry.io/otel/sdk/resource"
 )
 
 const (
+	service     = "hexa-event-demo"
+	environment = "dev"
+	id          = 1
+
 	Version = "2.3.0"
 	topic   = "hi_salam2"
 )
@@ -31,8 +48,41 @@ type HelloPayload struct {
 	Name string `json:"name"`
 }
 
+func initMeter() {
+	config := prometheus.Config{}
+	c := controller.New(
+		processor.NewFactory(
+			selector.NewWithHistogramDistribution(
+				histogram.WithExplicitBoundaries(config.DefaultHistogramBoundaries),
+			),
+			aggregation.CumulativeTemporalitySelector(),
+			processor.WithMemory(true),
+		),
+		controller.WithResource(resource.NewWithAttributes(semconv.SchemaURL,
+			semconv.ServiceNameKey.String(service),
+			attribute.String("environment", environment),
+			attribute.Int64("ID", id))),
+	)
+
+	exporter, err := prometheus.New(config, c)
+
+	if err != nil {
+		log.Panicf("failed to initialize prometheus exporter %v", err)
+	}
+	global.SetMeterProvider(exporter.MeterProvider())
+
+	http.HandleFunc("/", exporter.ServeHTTP)
+	go func() {
+		_ = http.ListenAndServe(":2222", nil)
+	}()
+
+	fmt.Println("Prometheus server running on :2222")
+}
+
 func main() {
 	hlog.SetGlobalLogger(l)
+	initMeter()
+
 	cfg := hafka.NewConfig(
 		hafka.WithVersion(version),
 		hafka.WithInitialOffset(sarama.OffsetOldest),
@@ -46,10 +96,15 @@ func main() {
 	})
 	defer emitter.Shutdown(context.Background())
 
+	metrics := hafka.MetricsMiddleware(hafka.MetricsConfig{
+		MeterProvider: global.GetMeterProvider(),
+		ServerName:    "simple-server",
+	})
+
 	receiver, err := hafka.NewReceiver(hafka.ReceiverOptions{
 		ContextPropagator: p,
 		Client:            client,
-		Middlewares:       []hevent.Middleware{hevent.RecoverMiddleware},
+		Middlewares:       []hevent.Middleware{metrics, hevent.RecoverMiddleware},
 	})
 
 	gutil.PanicErr(err)
@@ -127,8 +182,6 @@ func subscribeToEvents(receiver hevent.Receiver) {
 }
 
 func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
-	gutil.PanicErr(err)
-
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
@@ -143,19 +196,7 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 }
 
 func sayHandler(c hevent.HandlerContext, msg hevent.Message, err error) error {
-	gutil.PanicErr(err)
-
-	var p HelloPayload
-	gutil.PanicErr(msg.Payload.Decode(&p))
-
-	l := hlog.CtxLogger(c)
-	l.Info("say: msg headers", hlog.Any("headers", mapBytesToMapString(msg.Headers)))
-	l.Info("say: ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
-	l.Info(fmt.Sprintf("say: hi %s", p.Name))
-	logDeduplicatorMetaValues(c)
-	l.Info("say: Done message handing \n -------------")
-
-	return nil
+	panic("paniccccccc")
 }
 
 func logDeduplicatorMetaValues(c context.Context) {

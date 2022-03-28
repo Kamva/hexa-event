@@ -22,7 +22,7 @@ func MetricsMiddleware(cfg MetricsConfig) hevent.Middleware {
 	meterMust := metric.Must(meter)
 	eventCounter := meterMust.NewFloat64Counter("received_events_total")
 	failedCounter := meterMust.NewFloat64Counter("failed_events_total")
-	processDuration := meterMust.NewFloat64Histogram("requests_duration_second")
+	processDuration := meterMust.NewFloat64Histogram("event_consume_duration_seconds")
 	payloadSizeBytes := meterMust.NewInt64Histogram("event_payload_size_bytes")
 
 	return func(next hevent.EventHandler) hevent.EventHandler {
@@ -31,9 +31,6 @@ func MetricsMiddleware(cfg MetricsConfig) hevent.Middleware {
 			primaryMsg := message.Primary.(*sarama.ConsumerMessage)
 
 			err = next(c, message, err)
-			// Extract the parent from the request, but this is a gateway that users
-			// send request to it, check if propagation from external requests has any
-			// security issue.
 			attrs := []attribute.KeyValue{
 				semconv.MessagingSystemKey.String("kafka"),
 				semconv.MessagingDestinationKey.String(primaryMsg.Topic),

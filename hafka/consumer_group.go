@@ -182,7 +182,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			// TODO: maybe we don't need to retry messages that we
 			// can not convert to the hexa message.
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
-		} else if err := h.handler(newEmptyHandlerContext(hexaCtx), hmsg, err); err != nil {
+		} else if err := h.handler(newNoopHandlerContext(hexaCtx), hmsg, err); err != nil {
 			// log error
 			hlog.CtxLogger(hexaCtx).Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
@@ -251,19 +251,19 @@ func (h *cgHandler) injectMessageDeduplicationMetaKeys(ctx context.Context, msg 
 	return ctx
 }
 
-type emptyHandlerContext struct {
+type noopHandlerContext struct {
 	context.Context
 }
 
-func newEmptyHandlerContext(ctx context.Context) hevent.HandlerContext {
-	return &emptyHandlerContext{ctx}
+func newNoopHandlerContext(ctx context.Context) hevent.HandlerContext {
+	return &noopHandlerContext{ctx}
 }
 
-func (e *emptyHandlerContext) Ack() {
+func (e *noopHandlerContext) Ack() {
 	// Do nothing.
 }
 
-func (e *emptyHandlerContext) Nack() {
+func (e *noopHandlerContext) Nack() {
 	// Do nothing.
 }
 
@@ -272,4 +272,4 @@ func generateEventId(topic string, partition int32, offset int64) string {
 }
 
 var _ ConsumerGroupHandler = &cgHandler{}
-var _ hevent.HandlerContext = &emptyHandlerContext{}
+var _ hevent.HandlerContext = &noopHandlerContext{}

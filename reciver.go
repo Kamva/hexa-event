@@ -2,6 +2,7 @@ package hevent
 
 import (
 	"context"
+	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
@@ -108,17 +109,21 @@ func (so *SubscriptionOptions) Extra() []interface{} {
 }
 
 func (m Message) Validate() error { // TODO: I think we should remove this method.
-	return validation.ValidateStruct(&m,
-		validation.Field(&m.CorrelationId, validation.Required),
-		validation.Field(&m.Headers, validation.Required),
-		validation.Field(&m.Payload, validation.Required),
-	)
+	if m.CorrelationId == "" {
+		return tracer.Trace(errors.New("correlation-id is required the event"))
+	}
+
+	if m.Headers == nil || m.Payload == nil {
+		return tracer.Trace(errors.New("message header and payload are required"))
+	}
+	return nil
 }
 
 func (e RawMessage) Validate() error {
-	return validation.ValidateStruct(&e,
-		validation.Field(&e.Headers, validation.Required),
-	)
+	if e.Headers == nil {
+		return tracer.Trace(errors.New("header is required in the raw event message"))
+	}
+	return nil
 }
 
 // NewSubscriptionOptions returns new instance of the subscription options.

@@ -17,6 +17,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	go.mongodb.org/mongo-driver v1.7.0
 	go.opentelemetry.io/otel v1.2.0
+	go.opentelemetry.io/otel/exporters/prometheus v0.25.0
 	go.opentelemetry.io/otel/metric v0.25.0
-	google.golang.org/protobuf v1.24.0
+	go.opentelemetry.io/otel/sdk v1.2.0
+	go.opentelemetry.io/otel/sdk/export/metric v0.25.0
+	go.opentelemetry.io/otel/sdk/metric v0.25.0
+	google.golang.org/protobuf v1.26.0-rc.1
 )
