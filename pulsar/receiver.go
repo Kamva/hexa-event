@@ -86,7 +86,7 @@ func (r *receiver) subscribe(consumer pulsar.Consumer, h hevent.EventHandler) er
 		// Note: we just log the handler error, if you want to send nack,
 		// you should call to the Nack method.
 		if err := h(newHandlerCtx(ctx, msg), message, err); err != nil {
-			hlog.CtxLogger(ctx).Error("error on handling event",
+			hexa.Logger(ctx).Error("error on handling event",
 				hlog.String("topic", msg.Topic()),
 				hlog.String("key", msg.Key()),
 				hlog.String("subscription", msg.Subscription()),

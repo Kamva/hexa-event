@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
+	"github.com/kamva/hexa"
 	hevent "github.com/kamva/hexa-event"
 	"github.com/kamva/hexa/hlog"
 	"github.com/kamva/tracer"
@@ -184,7 +185,7 @@ func (h *cgHandler) ConsumeClaim(s sarama.ConsumerGroupSession, claim sarama.Con
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
 		} else if err := h.handler(newNoopHandlerContext(hexaCtx), hmsg, err); err != nil {
 			// log error
-			hlog.CtxLogger(hexaCtx).Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
+			hexa.Logger(hexaCtx).Error("event handler failed to handle message", h.logMsgErr(msg, err, retryCount)...)
 
 			// retry the message
 			h.producer.Input() <- h.msgConverter.ConsumerToProducerMessage(h.qm.NextTopic(retryCount), msg)
@@ -206,7 +207,7 @@ func (h *cgHandler) logMsgErr(msg *sarama.ConsumerMessage, err error, retryCount
 		hlog.Int("retry_num", retryCount),
 		hlog.String("next_topic", h.qm.NextTopic(retryCount)),
 	}
-	return append(fields, hlog.ErrFields(tracer.Trace(err))...)
+	return append(fields, hexa.ErrFields(tracer.Trace(err))...)
 }
 
 // injectMessageDeduplicationMetaKeys injects message deduplication meta keys into the

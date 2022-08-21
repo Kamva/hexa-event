@@ -2,6 +2,7 @@ package hevent
 
 import (
 	"context"
+	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kamva/hexa"
@@ -29,10 +30,13 @@ type (
 )
 
 func (e Event) Validate() error {
-	return validation.ValidateStruct(&e,
-		validation.Field(&e.Channel, validation.Required),
-		validation.Field(&e.Key, validation.Required),
-	)
+	if e.Channel == "" {
+		return errors.New("event channel is required")
+	}
+	if e.Key == "" {
+		return errors.New("event key is required")
+	}
+	return nil
 }
 
 var _ validation.Validatable = &Event{}

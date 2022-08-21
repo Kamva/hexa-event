@@ -134,7 +134,7 @@ func (r *receiver) handler(h hevent.EventHandler) stan.MsgHandler {
 		ctx, m, err := r.extractMessage(msg.Data)
 		// Note: we do not send ack or
 		if err := h(newHandlerCtx(ctx, msg), m, tracer.Trace(err)); err != nil {
-			hlog.CtxLogger(ctx).Error("error on handling event",
+			hexa.Logger(ctx).Error("error on handling event",
 				hlog.Err(err),
 				hlog.Any("headers", m.Headers),
 				hlog.String("reply_channel", m.ReplyChannel),

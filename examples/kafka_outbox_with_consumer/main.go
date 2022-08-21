@@ -146,7 +146,7 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 	var p hello.HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	l := hlog.CtxLogger(c)
+	l := hexa.Logger(c)
 	l.Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
 	l.Info(fmt.Sprintf("hi %s", p.Name))
 

@@ -30,6 +30,7 @@ func main() {
 	emitter, err := kafkabox.NewEmitter(kafkabox.EmitterOptions{
 		Outbox:            kafkabox.NewOutboxStore(coll),
 		ContextPropagator: p,
+		//Encoder:           hevent.NewProtobufEncoder(),
 		Encoder:           hevent.NewProtobufEncoder(),
 	})
 	gutil.PanicErr(err)

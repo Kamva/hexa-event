@@ -108,13 +108,13 @@ func helloHandler(c hevent.HandlerContext, msg hevent.Message, err error) error 
 	var p HelloPayload
 	gutil.PanicErr(msg.Payload.Decode(&p))
 
-	hlog.CtxLogger(c).Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
-	hlog.CtxLogger(c).Info(fmt.Sprintf("hi %s", p.Name))
+	hexa.Logger(c).Info("ctx correlation_id", hlog.String("cid", hexa.CtxCorrelationId(c)))
+	hexa.Logger(c).Info(fmt.Sprintf("hi %s", p.Name))
 
 	retryCount++
 	if retryCount <= 3 {
 		return errors.New("fake error just to retry the event")
 	}
-	hlog.CtxLogger(c).Info("ok, I'm processed this message, by :)")
+	hexa.Logger(c).Info("ok, I'm processed this message, by :)")
 	return nil
 }

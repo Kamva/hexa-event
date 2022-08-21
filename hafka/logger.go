@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/Shopify/sarama"
-	"github.com/kamva/hexa"
+	"github.com/kamva/hexa/hlog"
 )
 
 // logger implements sarama StdLogger
 type logger struct {
-	l hexa.Logger
+	l hlog.Logger
 }
 
 func (l *logger) Print(v ...interface{}) {
@@ -24,7 +24,7 @@ func (l *logger) Println(v ...interface{}) {
 	l.l.Info(fmt.Sprintln(v...))
 }
 
-func NewLogger(l hexa.Logger) sarama.StdLogger {
+func NewLogger(l hlog.Logger) sarama.StdLogger {
 	return &logger{l: l}
 }
 
